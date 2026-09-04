@@ -1,3 +1,9 @@
 name = "stroll"
 compatibility_date = "2026-09-04"
-pages_build_output_dir = "dist"
+main = "worker/index.ts"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]

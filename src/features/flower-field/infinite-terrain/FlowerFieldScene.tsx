@@ -151,10 +151,10 @@ function FieldRenderEffects({ ditherMode, ditherPixelSize, noiseStrength, noiseS
 		const nextEffectPass = new ShaderPass({
 			uniforms: {
 				tDiffuse: { value: null },
-				uPixelSize: { value: ditherPixelSize },
-				uDitherMode: { value: ditherMode },
-				uNoiseStrength: { value: noiseStrength },
-				uNoiseScale: { value: noiseScale },
+				uPixelSize: { value: 1 },
+				uDitherMode: { value: 0 },
+				uNoiseStrength: { value: 0 },
+				uNoiseScale: { value: 0 },
 			},
 			vertexShader: `
 				varying vec2 vUv;

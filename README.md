@@ -16,7 +16,7 @@ cp .dev.vars.example .dev.vars
 yarn dev
 ```
 
-Set `OPENWEATHERMAP_API_KEY` in `.dev.vars`. The Vite frontend runs at `http://127.0.0.1:8788`; the local Cloudflare Pages function runs at `http://127.0.0.1:8789` and is proxied automatically.
+Set `OPENWEATHERMAP_API_KEY` in `.dev.vars`. The Vite frontend runs at `http://127.0.0.1:8788`; the local Cloudflare Worker runs at `http://127.0.0.1:8789` and is proxied automatically.
 
 ## Checks
 
@@ -26,15 +26,17 @@ yarn test
 yarn build
 ```
 
-## Cloudflare Pages
+## Cloudflare Workers
 
-Connect the repository to Cloudflare Pages with:
+Authenticate once, configure the weather API secret, then deploy the Worker and its static assets:
 
-- Build command: `yarn build`
-- Build output directory: `dist`
-- Node.js version: `22`
+```sh
+yarn wrangler login
+yarn wrangler secret put OPENWEATHERMAP_API_KEY
+yarn deploy
+```
 
-Then add `OPENWEATHERMAP_API_KEY` as a Pages secret or encrypted environment variable. The file-based function in `functions/api/weather.ts` is deployed as `/api/weather`.
+`yarn deploy` builds the Vite app and publishes `dist` with `worker/index.ts`. The Worker handles `/api/weather` and serves the React app for all other routes.
 
 ## Attribution
 

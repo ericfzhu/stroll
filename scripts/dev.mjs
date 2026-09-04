@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 const functionsPort = process.env.FUNCTIONS_PORT || '8789';
 
 const processes = [
-	spawn('yarn', ['exec', 'wrangler', 'pages', 'dev', 'public', '--port', functionsPort, '--show-interactive-dev-session=false'], {
+	spawn('yarn', ['exec', 'wrangler', 'dev', '--assets', 'public', '--port', functionsPort, '--show-interactive-dev-session=false'], {
 		stdio: 'inherit',
 	}),
 	spawn('yarn', ['exec', 'vite'], {

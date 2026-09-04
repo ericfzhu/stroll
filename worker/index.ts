@@ -1,4 +1,7 @@
-import type { Env } from '../types';
+interface Env {
+	ASSETS: Fetcher;
+	OPENWEATHERMAP_API_KEY: string;
+}
 
 interface OpenWeatherResponse {
 	main: {
@@ -76,13 +79,13 @@ interface WeatherResponse {
 	hourly: HourlyForecast[];
 }
 
-export const onRequestGet: PagesFunction<Env> = async (context) => {
+async function getWeatherResponse(env: Env) {
 	try {
 		// Sydney coordinates
 		const latitude = '-33.8688';
 		const longitude = '151.2093';
 
-		const apiKey = context.env.OPENWEATHERMAP_API_KEY;
+		const apiKey = env.OPENWEATHERMAP_API_KEY;
 		const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${apiKey}`;
 		const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&units=metric&cnt=8&appid=${apiKey}`;
 
@@ -159,4 +162,23 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 			},
 		});
 	}
-};
+}
+
+export default {
+	async fetch(request, env): Promise<Response> {
+		const url = new URL(request.url);
+
+		if (url.pathname === '/api/weather') {
+			if (request.method !== 'GET') {
+				return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET' } });
+			}
+			return getWeatherResponse(env);
+		}
+
+		if (url.pathname.startsWith('/api/')) {
+			return Response.json({ error: 'Not found' }, { status: 404 });
+		}
+
+		return env.ASSETS.fetch(request);
+	},
+} satisfies ExportedHandler<Env>;

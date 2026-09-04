@@ -8,6 +8,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:vite": "vite",
     "build": "tsc -b && vite build",
+	"deploy": "yarn build && wrangler deploy",
     "lint": "oxlint .",
     "test": "vitest run",
     "preview": "vite preview"
