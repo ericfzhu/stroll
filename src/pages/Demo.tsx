@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import FlowerFieldLoading from '../features/flower-field/FlowerFieldLoading';
 import FlowerFieldScene from '../features/flower-field/infinite-terrain/FlowerFieldScene';
 import type { WeatherData } from '../features/weather/weatherTypes';
@@ -139,6 +140,9 @@ export default function FlowerFieldDemo() {
 				/>
 			</div>
 			<div className="flower-field-interface">
+				<header className="flower-field-header">
+					<Link to="/flower-studio" className="flower-field-studio">Flower studio</Link>
+				</header>
 				<aside className="flower-field-camera-controls" aria-label="Camera controls">
 					<label>
 						<span>Height</span>
