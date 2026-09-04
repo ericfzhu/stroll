@@ -45,6 +45,7 @@ interface FlowerFieldSceneProps {
 	windScale: number;
 	ditherMode: 0 | 1;
 	ditherPixelSize: number;
+	ditherStrength: number;
 	noiseStrength: number;
 	noiseScale: number;
 	weather?: WeatherData | null;
@@ -68,6 +69,7 @@ const FIELD_EFFECT_FRAGMENT_SHADER = `
 	uniform sampler2D tDiffuse;
 	uniform float uPixelSize;
 	uniform int uDitherMode;
+	uniform float uDitherStrength;
 	uniform float uNoiseStrength;
 	uniform float uNoiseScale;
 	varying vec2 vUv;
@@ -130,7 +132,8 @@ const FIELD_EFFECT_FRAGMENT_SHADER = `
 			? diamondThreshold(gl_FragCoord.xy, uPixelSize + 3.0)
 			: bayerThreshold(gl_FragCoord.xy, uPixelSize);
 		const float colorLevels = 10.0;
-		color = floor(color * colorLevels + threshold) / colorLevels;
+		vec3 ditheredColor = floor(color * colorLevels + threshold) / colorLevels;
+		color = mix(color, ditheredColor, clamp(uDitherStrength, 0.0, 1.0));
 
 		gl_FragColor = vec4(color, 1.0);
 		#include <tonemapping_fragment>
@@ -138,9 +141,10 @@ const FIELD_EFFECT_FRAGMENT_SHADER = `
 	}
 `;
 
-function FieldRenderEffects({ ditherMode, ditherPixelSize, noiseStrength, noiseScale }: {
+function FieldRenderEffects({ ditherMode, ditherPixelSize, ditherStrength, noiseStrength, noiseScale }: {
 	ditherMode: 0 | 1;
 	ditherPixelSize: number;
+	ditherStrength: number;
 	noiseStrength: number;
 	noiseScale: number;
 }) {
@@ -153,6 +157,7 @@ function FieldRenderEffects({ ditherMode, ditherPixelSize, noiseStrength, noiseS
 				tDiffuse: { value: null },
 				uPixelSize: { value: 1 },
 				uDitherMode: { value: 0 },
+				uDitherStrength: { value: 0 },
 				uNoiseStrength: { value: 0 },
 				uNoiseScale: { value: 0 },
 			},
@@ -177,9 +182,10 @@ function FieldRenderEffects({ ditherMode, ditherPixelSize, noiseStrength, noiseS
 	useEffect(() => {
 		effectPass.uniforms.uPixelSize.value = ditherPixelSize;
 		effectPass.uniforms.uDitherMode.value = ditherMode;
+		effectPass.uniforms.uDitherStrength.value = ditherStrength;
 		effectPass.uniforms.uNoiseStrength.value = noiseStrength;
 		effectPass.uniforms.uNoiseScale.value = noiseScale;
-	}, [ditherMode, ditherPixelSize, effectPass, noiseScale, noiseStrength]);
+	}, [ditherMode, ditherPixelSize, ditherStrength, effectPass, noiseScale, noiseStrength]);
 
 	useEffect(() => () => composer.dispose(), [composer]);
 	useFrame(() => composer.render(), 1);
@@ -583,7 +589,7 @@ function StormLightning({ enabled }: { enabled: boolean }) {
 	);
 }
 
-interface FlowerFieldWorldProps extends Omit<FlowerFieldSceneProps, 'reducedMotion' | 'showDiagnostics'> {
+interface FlowerFieldWorldProps extends Omit<FlowerFieldSceneProps, 'reducedMotion' | 'showDiagnostics' | 'ditherStrength'> {
 	diagnosticsRef: RefObject<FlowerFieldDiagnosticValues>;
 }
 
@@ -926,7 +932,7 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 	);
 }
 
-export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true, cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, onReady }: FlowerFieldSceneProps) {
+export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true, cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, ditherStrength, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, onReady }: FlowerFieldSceneProps) {
 	const diagnosticsRef = useRef(createFlowerFieldDiagnosticValues());
 	const diagnosticHistoryRef = useRef(createFlowerFieldDiagnosticHistory());
 	const handleCreated = useCallback(({ gl }: { gl: THREE.WebGLRenderer }) => {
@@ -972,6 +978,7 @@ export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true
 					<FieldRenderEffects
 						ditherMode={ditherMode}
 						ditherPixelSize={ditherPixelSize}
+						ditherStrength={ditherStrength}
 						noiseStrength={noiseStrength}
 						noiseScale={noiseScale}
 					/>

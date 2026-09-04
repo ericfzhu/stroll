@@ -29,7 +29,8 @@ export default function Stroll() {
 						windScale={0.35}
 						ditherMode={0}
 						ditherPixelSize={1}
-						noiseStrength={0.45}
+						ditherStrength={0}
+						noiseStrength={0}
 						noiseScale={0.35}
 						weather={weather}
 						cloudRendering="sheet"

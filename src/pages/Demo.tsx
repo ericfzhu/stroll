@@ -67,6 +67,7 @@ export default function FlowerFieldDemo() {
 	const [windScale, setWindScale] = useState(0.35);
 	const [ditherMode, setDitherMode] = useState<0 | 1>(0);
 	const [ditherPixelSize, setDitherPixelSize] = useState(1);
+	const [ditherStrength, setDitherStrength] = useState(1);
 	const [noiseStrength, setNoiseStrength] = useState(0.45);
 	const [noiseScale, setNoiseScale] = useState(0.35);
 	const [weatherCode, setWeatherCode] = useState(800);
@@ -99,6 +100,7 @@ export default function FlowerFieldDemo() {
 			gustScale: windScale,
 			ditherPattern: ditherMode === 0 ? 'diamond' : 'bayer',
 			ditherPixelSize,
+			ditherStrength,
 			noiseStrength,
 			noiseScale,
 			weatherCode,
@@ -108,7 +110,7 @@ export default function FlowerFieldDemo() {
 		}, null, 2));
 		setSettingsCopied(true);
 		window.setTimeout(() => setSettingsCopied(false), 1600);
-	}, [cameraAngle, cameraHeight, cameraSpeed, cloudCover, ditherMode, ditherPixelSize, noiseScale, noiseStrength, showChunkBoundaries, skyColor, sunStrength, timeOfDay, visibility, weatherCode, windDirection, windScale, windSpeed, windStrength]);
+	}, [cameraAngle, cameraHeight, cameraSpeed, cloudCover, ditherMode, ditherPixelSize, ditherStrength, noiseScale, noiseStrength, showChunkBoundaries, skyColor, sunStrength, timeOfDay, visibility, weatherCode, windDirection, windScale, windSpeed, windStrength]);
 
 	return (
 		<main className="flower-field-page">
@@ -127,6 +129,7 @@ export default function FlowerFieldDemo() {
 					windScale={windScale}
 					ditherMode={ditherMode}
 					ditherPixelSize={ditherPixelSize}
+					ditherStrength={ditherStrength}
 					noiseStrength={noiseStrength}
 					noiseScale={noiseScale}
 					weather={mockWeather}
@@ -287,6 +290,11 @@ export default function FlowerFieldDemo() {
 							<span>Pixel size</span>
 							<input type="range" min="1" max="12" step="1" value={ditherPixelSize} onChange={(event) => setDitherPixelSize(Number(event.target.value))} />
 							<output>{ditherPixelSize}px</output>
+						</label>
+						<label>
+							<span>Strength</span>
+							<input type="range" min="0" max="1" step="0.05" value={ditherStrength} onChange={(event) => setDitherStrength(Number(event.target.value))} />
+							<output>{ditherStrength.toFixed(2)}</output>
 						</label>
 					</fieldset>
 					<fieldset>
