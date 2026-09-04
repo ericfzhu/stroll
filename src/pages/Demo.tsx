@@ -65,6 +65,10 @@ export default function FlowerFieldDemo() {
 	const [windStrength, setWindStrength] = useState(0.7);
 	const [windDirection, setWindDirection] = useState(46);
 	const [windScale, setWindScale] = useState(0.35);
+	const [ditherMode, setDitherMode] = useState<0 | 1>(0);
+	const [ditherPixelSize, setDitherPixelSize] = useState(1);
+	const [noiseStrength, setNoiseStrength] = useState(0.45);
+	const [noiseScale, setNoiseScale] = useState(0.35);
 	const [weatherCode, setWeatherCode] = useState(800);
 	const [cloudCover, setCloudCover] = useState(0);
 	const [visibility, setVisibility] = useState(10);
@@ -93,6 +97,10 @@ export default function FlowerFieldDemo() {
 			windForce: windStrength,
 			windDirection,
 			gustScale: windScale,
+			ditherPattern: ditherMode === 0 ? 'diamond' : 'bayer',
+			ditherPixelSize,
+			noiseStrength,
+			noiseScale,
 			weatherCode,
 			cloudCover,
 			visibility,
@@ -100,7 +108,7 @@ export default function FlowerFieldDemo() {
 		}, null, 2));
 		setSettingsCopied(true);
 		window.setTimeout(() => setSettingsCopied(false), 1600);
-	}, [cameraAngle, cameraHeight, cameraSpeed, cloudCover, showChunkBoundaries, skyColor, sunStrength, timeOfDay, visibility, weatherCode, windDirection, windScale, windSpeed, windStrength]);
+	}, [cameraAngle, cameraHeight, cameraSpeed, cloudCover, ditherMode, ditherPixelSize, noiseScale, noiseStrength, showChunkBoundaries, skyColor, sunStrength, timeOfDay, visibility, weatherCode, windDirection, windScale, windSpeed, windStrength]);
 
 	return (
 		<main className="flower-field-page">
@@ -117,6 +125,10 @@ export default function FlowerFieldDemo() {
 					windStrength={windStrength}
 					windDirection={windDirection * Math.PI / 180}
 					windScale={windScale}
+					ditherMode={ditherMode}
+					ditherPixelSize={ditherPixelSize}
+					noiseStrength={noiseStrength}
+					noiseScale={noiseScale}
 					weather={mockWeather}
 					weatherNow={mockWeatherNow}
 					cloudRendering="stylized"
@@ -261,6 +273,35 @@ export default function FlowerFieldDemo() {
 						/>
 						<output>{windScale.toFixed(2)}</output>
 					</label>
+					<fieldset>
+						<legend>Dithering</legend>
+						<label>
+							<span>Pattern</span>
+							<select value={ditherMode} onChange={(event) => setDitherMode(Number(event.target.value) as 0 | 1)}>
+								<option value={0}>Diamond</option>
+								<option value={1}>Bayer 8×8</option>
+							</select>
+							<output>{ditherMode === 0 ? 'Dia' : '8×8'}</output>
+						</label>
+						<label>
+							<span>Pixel size</span>
+							<input type="range" min="1" max="12" step="1" value={ditherPixelSize} onChange={(event) => setDitherPixelSize(Number(event.target.value))} />
+							<output>{ditherPixelSize}px</output>
+						</label>
+					</fieldset>
+					<fieldset>
+						<legend>Noise</legend>
+						<label>
+							<span>Strength</span>
+							<input type="range" min="0" max="1" step="0.05" value={noiseStrength} onChange={(event) => setNoiseStrength(Number(event.target.value))} />
+							<output>{noiseStrength.toFixed(2)}</output>
+						</label>
+						<label>
+							<span>Scale</span>
+							<input type="range" min="0.05" max="1.5" step="0.05" value={noiseScale} onChange={(event) => setNoiseScale(Number(event.target.value))} />
+							<output>{noiseScale.toFixed(2)}</output>
+						</label>
+					</fieldset>
 					<button type="button" onClick={handleCopySettings}>
 						{settingsCopied ? 'Copied' : 'Copy settings'}
 					</button>

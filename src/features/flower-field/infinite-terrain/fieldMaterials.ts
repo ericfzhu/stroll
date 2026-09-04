@@ -19,7 +19,15 @@ import { CHUNK_SIZE, FIELD_CURVATURE_RADIUS, FIELD_CURVATURE_START } from './wor
 
 const grassVertexShader = grassVertexSource.replace('#include includes.glsl', grassIncludes);
 
-export function useInfiniteTerrainMaterial(noiseTexture: THREE.Texture, sunDirection: THREE.Vector3, sunStrength: number) {
+export function useInfiniteTerrainMaterial(
+	noiseTexture: THREE.Texture,
+	sunDirection: THREE.Vector3,
+	sunStrength: number,
+	ditherMode: 0 | 1,
+	ditherPixelSize: number,
+	noiseStrength: number,
+	noiseScale: number,
+) {
 	const material = useMemo(() => new THREE.ShaderMaterial({
 		uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.lights, {
 			uBaseColor: { value: new THREE.Color('#908343') },
@@ -32,17 +40,17 @@ export function useInfiniteTerrainMaterial(noiseTexture: THREE.Texture, sunDirec
 			uGroundOffset: { value: -0.75 },
 			uGroundFadeOffset: { value: 1 },
 			uNoiseTexture: { value: noiseTexture },
-			uNoiseStrength: { value: 0.45 },
-			uNoiseScale: { value: 0.35 },
-			uPixelSize: { value: 1 },
-			uDitherMode: { value: 0 },
+			uNoiseStrength: { value: noiseStrength },
+			uNoiseScale: { value: noiseScale },
+			uPixelSize: { value: ditherPixelSize },
+			uDitherMode: { value: ditherMode },
 			uSunDirection: { value: sunDirection.clone() },
 			uSunStrength: { value: sunStrength },
 		}]),
 		vertexShader: terrainVertexShader,
 		fragmentShader: terrainFragmentShader,
 		lights: true,
-	}), [noiseTexture, sunDirection, sunStrength]);
+	}), [ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, sunDirection, sunStrength]);
 
 	useEffect(() => () => material.dispose(), [material]);
 	return material;
@@ -58,10 +66,15 @@ export function useInfiniteGrassMaterial(
 	windStrength: number,
 	windDirection: number,
 	windScale: number,
+	ditherMode: 0 | 1,
+	ditherPixelSize: number,
+	noiseStrength: number,
+	noiseScale: number,
 ) {
 	const material = useMemo(() => new THREE.ShaderMaterial({
 		uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.lights, {
-			uPixelSize: { value: 1 },
+			uPixelSize: { value: ditherPixelSize },
+			uDitherMode: { value: ditherMode },
 			uTime: { value: 0 },
 			uGrassSegments: { value: GRASS_SEGMENTS },
 			uGrassChunkSize: { value: CHUNK_SIZE },
@@ -89,8 +102,8 @@ export function useInfiniteGrassMaterial(
 			uCurvatureRadius: { value: FIELD_CURVATURE_RADIUS },
 			uCurvatureStart: { value: FIELD_CURVATURE_START },
 			uNoiseTexture: { value: noiseTexture },
-			uNoiseStrength: { value: 0.45 },
-			uNoiseScale: { value: 0.35 },
+			uNoiseStrength: { value: noiseStrength },
+			uNoiseScale: { value: noiseScale },
 			uCircleRadiusFactor: { value: 20 },
 			uGrassFadeOffset: { value: 3.5 },
 			uSunDirection: { value: sunDirection.clone() },
@@ -102,7 +115,7 @@ export function useInfiniteGrassMaterial(
 		fragmentShader: grassFragmentShader,
 		side: THREE.FrontSide,
 		lights: true,
-	}), [noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength]);
+	}), [ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength]);
 
 	useEffect(() => () => material.dispose(), [material]);
 	return material;
