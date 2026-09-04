@@ -1,0 +1,220 @@
+.flower-field-interface {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	pointer-events: none;
+}
+
+.flower-field-error a {
+	color: inherit;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: uppercase;
+	text-decoration: none;
+	pointer-events: auto;
+}
+
+.flower-field-camera-controls {
+	position: absolute;
+	top: 18px;
+	right: 22px;
+	display: grid;
+	width: 290px;
+	gap: 12px;
+	padding: 14px;
+	border: 1px solid rgba(24, 32, 22, 0.28);
+	background: rgba(242, 244, 237, 0.68);
+	font-size: 8px;
+	letter-spacing: 0.055em;
+	text-transform: uppercase;
+	backdrop-filter: blur(12px);
+	pointer-events: auto;
+	max-height: calc(100svh - 36px);
+	overflow-y: auto;
+}
+
+.flower-field-camera-controls label {
+	display: grid;
+	grid-template-columns: 68px 1fr 46px;
+	align-items: center;
+	gap: 9px;
+}
+
+.flower-field-camera-controls input[type='range'] {
+	width: 100%;
+	margin: 0;
+	accent-color: #182016;
+	cursor: ew-resize;
+}
+
+.flower-field-camera-controls input[type='checkbox'] {
+	justify-self: start;
+	width: 13px;
+	height: 13px;
+	margin: 0;
+	accent-color: #182016;
+	cursor: pointer;
+}
+
+.flower-field-camera-controls input[type='color'] {
+	width: 100%;
+	height: 14px;
+	border: 0;
+	padding: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+.flower-field-camera-controls select {
+	min-width: 0;
+	width: 100%;
+	border: 1px solid rgba(24, 32, 22, 0.28);
+	border-radius: 0;
+	background: rgba(242, 244, 237, 0.58);
+	color: inherit;
+	font: inherit;
+	text-transform: uppercase;
+}
+
+.flower-field-camera-controls output {
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.flower-field-camera-controls button {
+	width: 100%;
+	margin-top: 2px;
+	padding: 8px;
+	border: 1px solid rgba(24, 32, 22, 0.34);
+	background: rgba(242, 244, 237, 0.54);
+	color: inherit;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.flower-field-camera-controls button:hover,
+.flower-field-camera-controls button:focus-visible {
+	border-color: #182016;
+	background: #182016;
+	color: #f0f2eb;
+}
+
+.flower-field-diagnostics {
+	position: absolute;
+	right: 22px;
+	bottom: 18px;
+	z-index: 3;
+	width: 230px;
+	padding: 12px 14px;
+	border: 1px solid rgba(255, 255, 255, 0.24);
+	background: rgba(15, 20, 13, 0.64);
+	color: rgba(255, 255, 255, 0.92);
+	font-family: 'JetBrains Mono', monospace;
+	font-size: 8px;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.045em;
+	line-height: 1.35;
+	text-transform: uppercase;
+	backdrop-filter: blur(12px);
+	pointer-events: none;
+}
+
+.flower-field-diagnostics header {
+	margin-bottom: 8px;
+	padding-bottom: 7px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.flower-field-diagnostics dl {
+	display: grid;
+	gap: 4px;
+	margin: 0;
+}
+
+.flower-field-diagnostics dl div {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.flower-field-diagnostics dt,
+.flower-field-diagnostics dd {
+	margin: 0;
+}
+
+.flower-field-diagnostics dt {
+	color: rgba(255, 255, 255, 0.62);
+}
+
+.flower-field-diagnostics button {
+	width: 100%;
+	margin-top: 10px;
+	padding: 7px 8px;
+	border: 1px solid rgba(255, 255, 255, 0.32);
+	background: rgba(255, 255, 255, 0.08);
+	color: inherit;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: inherit;
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.flower-field-diagnostics button:hover,
+.flower-field-diagnostics button:focus-visible {
+	border-color: rgba(255, 255, 255, 0.8);
+	background: rgba(255, 255, 255, 0.18);
+}
+
+.flower-field-error {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 3;
+	display: grid;
+	width: min(280px, calc(100vw - 40px));
+	gap: 12px;
+	padding: 18px;
+	background: rgba(240, 242, 235, 0.9);
+	box-shadow: 0 16px 54px rgba(25, 32, 21, 0.12);
+	font-family: 'JetBrains Mono', monospace;
+	font-size: 9px;
+	letter-spacing: 0.055em;
+	text-transform: uppercase;
+	transform: translate(-50%, -50%);
+	backdrop-filter: blur(14px);
+}
+
+.flower-field-error p {
+	margin: 0;
+	line-height: 1.5;
+	text-transform: none;
+}
+
+.flower-field-error a {
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+@media (max-width: 700px) {
+	.flower-field-camera-controls {
+		top: 12px;
+		right: 12px;
+		width: min(290px, calc(100vw - 132px));
+	}
+
+	.flower-field-diagnostics {
+		right: 12px;
+		bottom: 12px;
+		width: 210px;
+	}
+}
+
+@media (max-width: 360px) {
+	.flower-field-camera-controls {
+		top: 64px;
+		width: calc(100vw - 24px);
+	}
+}

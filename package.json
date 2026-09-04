@@ -1,0 +1,37 @@
+{
+  "name": "stroll",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "yarn@3.6.3",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:vite": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint .",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^9.7.0",
+    "motion": "12.25.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.12.0",
+    "simplex-noise": "^4.0.3",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260831.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.185.4",
+    "@vitejs/plugin-react": "^4.2.0",
+    "oxlint": "^1.81.0",
+    "typescript": "~5.9.3",
+    "vite": "^5.0.0",
+    "vitest": "^3.2.6",
+    "wrangler": "latest"
+  }
+}

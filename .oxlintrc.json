@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["dist"],
+  "overrides": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "plugins": ["typescript", "react"],
+      "env": { "browser": true, "es2022": true },
+      "rules": {
+        "no-debugger": "error",
+        "no-unused-vars": "error",
+        "react/rules-of-hooks": "error",
+        "react/exhaustive-deps": "warn",
+        "complexity": ["warn", 20]
+      }
+    }
+  ]
+}

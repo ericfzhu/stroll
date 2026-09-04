@@ -1,0 +1,21 @@
+.flower-field-page {
+	position: relative;
+	height: 100svh;
+	min-height: 520px;
+	overflow: hidden;
+	background: #dce1d5;
+	color: #182016;
+	font-family: 'JetBrains Mono', monospace;
+}
+
+.flower-field-stage,
+.flower-field-canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.flower-field-canvas {
+	display: block;
+}
