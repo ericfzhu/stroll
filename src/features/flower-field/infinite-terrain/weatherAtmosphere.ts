@@ -57,6 +57,7 @@ const DAY_PALETTES: Record<FlowerFieldWeatherState, Palette> = {
 const NIGHT_ZENITH = new THREE.Color('#07111d');
 const NIGHT_HORIZON = new THREE.Color('#182630');
 const NIGHT_SUN = new THREE.Color('#8fa3b4');
+const DEFAULT_SKY_COLOR = new THREE.Color('#77c4ee');
 const DEFAULT_SUN_DIRECTION = new THREE.Vector3(-0.48, 0.78, -0.4).normalize();
 
 const WEATHER_COLOR_INFLUENCE: Record<FlowerFieldWeatherState, number> = {
@@ -136,6 +137,15 @@ function weatherTint(baseColor: string, weatherColor: string, influence: number)
 	return `#${new THREE.Color(baseColor).lerp(new THREE.Color(weatherColor), influence).getHexString()}`;
 }
 
+function applySkyColorShift(baseColor: string, skyColor: string) {
+	const shiftedColor = new THREE.Color(baseColor);
+	const selectedColor = new THREE.Color(skyColor);
+	shiftedColor.r = THREE.MathUtils.clamp(shiftedColor.r + selectedColor.r - DEFAULT_SKY_COLOR.r, 0, 1);
+	shiftedColor.g = THREE.MathUtils.clamp(shiftedColor.g + selectedColor.g - DEFAULT_SKY_COLOR.g, 0, 1);
+	shiftedColor.b = THREE.MathUtils.clamp(shiftedColor.b + selectedColor.b - DEFAULT_SKY_COLOR.b, 0, 1);
+	return `#${shiftedColor.getHexString()}`;
+}
+
 export function createFlowerFieldAtmosphere(
 	weather: WeatherData | null,
 	{ fallbackSkyColor, baseSunStrength, now = Date.now() / 1000 }: AtmosphereOptions,
@@ -162,8 +172,10 @@ export function createFlowerFieldAtmosphere(
 	const daylight = daylightAt(now, weather.sunrise, weather.sunset);
 	const cloudCover = THREE.MathUtils.clamp(weather.cloudCover, 0, 100);
 	const tintedZenith = weatherTint(fallbackSkyColor, palette.zenith, WEATHER_COLOR_INFLUENCE[state]);
+	const shiftedHorizon = applySkyColorShift(palette.horizon, fallbackSkyColor);
+	const tintedHorizon = weatherTint(shiftedHorizon, palette.horizon, WEATHER_COLOR_INFLUENCE[state]);
 	const dayZenith = colorWithCloudCover(tintedZenith, cloudCover, '#87969c');
-	const dayHorizon = colorWithCloudCover(palette.horizon, cloudCover, '#aeb6b5');
+	const dayHorizon = colorWithCloudCover(tintedHorizon, cloudCover, '#aeb6b5');
 	const zenithColor = nightBlend(dayZenith, NIGHT_ZENITH, daylight);
 	const horizonColor = nightBlend(dayHorizon, NIGHT_HORIZON, daylight);
 	const sunColor = nightBlend(palette.sun, NIGHT_SUN, daylight);

@@ -118,6 +118,24 @@ describe('flower field weather atmosphere', () => {
 		expect(fog.fogFar).toBeLessThan(clear.fogFar);
 	});
 
+	it('uses the selected sky color for both zenith and horizon without changing the default palette', () => {
+		const defaultSky = createFlowerFieldAtmosphere(weather(), {
+			fallbackSkyColor: '#77c4ee',
+			baseSunStrength: 0.2,
+			now: 30_000,
+		});
+		const adjustedSky = createFlowerFieldAtmosphere(weather(), {
+			fallbackSkyColor: '#d96f91',
+			baseSunStrength: 0.2,
+			now: 30_000,
+		});
+
+		expect(defaultSky.zenithColor).toBe('#77c4ee');
+		expect(defaultSky.horizonColor).toBe('#d8edf1');
+		expect(adjustedSky.zenithColor).not.toBe(defaultSky.zenithColor);
+		expect(adjustedSky.horizonColor).not.toBe(defaultSky.horizonColor);
+	});
+
 	it('adds precipitation only for rainy weather states', () => {
 		const clear = createFlowerFieldAtmosphere(weather(), {
 			fallbackSkyColor: '#77c4ee',

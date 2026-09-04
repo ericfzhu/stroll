@@ -68,9 +68,9 @@ export default function FlowerFieldDemo() {
 	const [windScale, setWindScale] = useState(0.35);
 	const [ditherMode, setDitherMode] = useState<0 | 1>(0);
 	const [ditherPixelSize, setDitherPixelSize] = useState(1);
-	const [ditherStrength, setDitherStrength] = useState(1);
-	const [noiseStrength, setNoiseStrength] = useState(0.45);
-	const [noiseScale, setNoiseScale] = useState(0.35);
+	const [ditherStrength, setDitherStrength] = useState(0);
+	const [noiseStrength, setNoiseStrength] = useState(0);
+	const [noiseScale, setNoiseScale] = useState(0.05);
 	const [weatherCode, setWeatherCode] = useState(800);
 	const [cloudCover, setCloudCover] = useState(0);
 	const [visibility, setVisibility] = useState(10);
