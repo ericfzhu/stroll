@@ -87,6 +87,9 @@ function chunkFootprint(centerX: number, centerZ: number, aspectRatio: number) {
 }
 
 function DirectionalSun({ strength, direction, color }: { strength: number; direction: THREE.Vector3; color: string }) {
+	// Shadows only modulate direct sunlight in the field shaders. At zero
+	// strength, skip the shadow pass and its shader sampling entirely.
+	const castsShadows = strength > 0;
 	const lightRef = useRef<THREE.DirectionalLight>(null);
 	const target = useMemo(() => new THREE.Object3D(), []);
 	const { camera, scene } = useThree();
@@ -100,6 +103,7 @@ function DirectionalSun({ strength, direction, color }: { strength: number; dire
 	}, [scene, target]);
 
 	useFrame(() => {
+		if (!castsShadows) return;
 		const focusX = camera.position.x;
 		const focusZ = camera.position.z - 18;
 		target.position.set(focusX, terrainHeight(focusX, focusZ), focusZ);
@@ -112,7 +116,7 @@ function DirectionalSun({ strength, direction, color }: { strength: number; dire
 			ref={lightRef}
 			color={color}
 			intensity={strength * 1.35}
-			castShadow
+			castShadow={castsShadows}
 			shadow-mapSize-width={1024}
 			shadow-mapSize-height={1024}
 			shadow-camera-left={-28}
@@ -847,13 +851,12 @@ export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true
 	const handleCreated = useCallback(({ gl }: { gl: THREE.WebGLRenderer }) => {
 		gl.toneMapping = THREE.ACESFilmicToneMapping;
 		gl.toneMappingExposure = 1;
-		gl.shadowMap.enabled = true;
-		gl.shadowMap.type = THREE.PCFShadowMap;
 	}, []);
 
 	return (
 		<>
 			<Canvas
+			shadows="percentage"
 			className="flower-field-canvas"
 			dpr={[1, 1.75]}
 			camera={{ fov: CAMERA_VERTICAL_FOV, near: 0.05, far: 180, position: [0, 1, 4] }}
