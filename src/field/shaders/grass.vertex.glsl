@@ -94,6 +94,13 @@ void main() {
   float zSide = float(zTest);   // front/back side
   float heightPercent = float(vertID - xTest) / (float(GRASS_SEGMENTS) * 2.0);
 
+  // Collapse the intermediate rows continuously before the CPU switches to
+  // their equivalent lower-detail indices. Shared endpoints never move.
+  float twoSegmentHeight = floor(heightPercent * 2.0 + 0.0001) * 0.5;
+  heightPercent = mix(heightPercent, twoSegmentHeight, nearLodBlend);
+  float oneSegmentHeight = floor(heightPercent + 0.0001);
+  heightPercent = mix(heightPercent, oneSegmentHeight, farLodBlend);
+
   float randomHeight = (rand(float(gl_InstanceID)) * 2.0 - 1.0) * 0.2;
   float width = GRASS_WIDTH * easeOut(1.08 - heightPercent, 2.0) * grassHeight;
   float height = GRASS_HEIGHT * grassHeight + randomHeight;

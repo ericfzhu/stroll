@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { GRASS_SEGMENTS, grassDensityForDistance } from './grassLod';
+import { createGrassIndices, GRASS_DETAIL_RANGES, grassDensityForDistance, grassDetailForDistance } from './grassLod';
 import {
 	CHUNK_SIZE,
 	TERRAIN_AMPLITUDE,
@@ -20,28 +20,13 @@ interface TerrainChunkProps {
 	grassMaterial: THREE.Material;
 }
 
-function createGrassIndices() {
-	const vertexCount = (GRASS_SEGMENTS + 1) * 2;
-	const indices = new Uint16Array(GRASS_SEGMENTS * 12);
-	let offset = 0;
-	for (let index = 0; index < GRASS_SEGMENTS; index += 1) {
-		const vertex = index * 2;
-		indices.set([
-			vertex, vertex + 1, vertex + 2,
-			vertex + 2, vertex + 1, vertex + 3,
-			vertexCount + vertex + 2, vertexCount + vertex + 1, vertexCount + vertex,
-			vertexCount + vertex + 3, vertexCount + vertex + 1, vertexCount + vertex + 2,
-		], offset);
-		offset += 12;
-	}
-	return indices;
-}
+const GRASS_CHUNK_RADIUS = CHUNK_SIZE * Math.SQRT2 / 2;
 
 function createGrassGeometry(x: number, z: number, count: number) {
-
 	const geometry = new THREE.InstancedBufferGeometry();
 	geometry.instanceCount = 0;
 	geometry.setIndex(new THREE.BufferAttribute(createGrassIndices(), 1));
+	geometry.setDrawRange(GRASS_DETAIL_RANGES.near.start, GRASS_DETAIL_RANGES.near.count);
 	geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1 + CHUNK_SIZE / 2);
 
 	const positions = new Float32Array(count * 3);
@@ -94,6 +79,8 @@ export default function TerrainChunk({ x, z, baseGrassCount, terrainMaterial, gr
 			camera.position.z - z * CHUNK_SIZE,
 		);
 		const grassCount = Math.round(baseGrassCount * grassDensityForDistance(distance));
+		const detail = grassDetailForDistance(distance, GRASS_CHUNK_RADIUS);
+		if (geometry.drawRange.start !== detail.start) geometry.setDrawRange(detail.start, detail.count);
 		if (grassCount === grassCountRef.current) return;
 		grassCountRef.current = grassCount;
 		geometry.instanceCount = grassCount;

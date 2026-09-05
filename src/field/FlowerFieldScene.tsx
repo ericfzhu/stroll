@@ -28,6 +28,7 @@ import { useInfiniteGrassMaterial, useInfiniteTerrainMaterial } from './fieldMat
 import { CHUNK_SIZE, FIELD_CURVATURE_RADIUS, FIELD_CURVATURE_START, terrainHeight } from './worldMath';
 import type { WeatherData } from '../weather/weatherTypes';
 import { createFlowerFieldAtmosphere } from './weatherAtmosphere';
+import { needsPostprocessing } from './renderFrame';
 
 type CloudRendering = 'sheet' | 'stylized';
 
@@ -151,7 +152,9 @@ function FieldRenderEffects({ ditherMode, ditherPixelSize, ditherStrength, noise
 	noiseScale: number;
 }) {
 	const { camera, gl, scene, size } = useThree();
-	const { composer, effectPass } = useMemo(() => {
+	const enabled = needsPostprocessing(ditherStrength, noiseStrength);
+	const pipeline = useMemo(() => {
+		if (!enabled) return null;
 		const nextComposer = new EffectComposer(gl);
 		nextComposer.addPass(new RenderPass(scene, camera));
 		const nextEffectPass = new ShaderPass({
@@ -174,26 +177,36 @@ function FieldRenderEffects({ ditherMode, ditherPixelSize, ditherStrength, noise
 		});
 		nextComposer.addPass(nextEffectPass);
 		return { composer: nextComposer, effectPass: nextEffectPass };
-	}, [camera, gl, scene]);
+	}, [camera, enabled, gl, scene]);
 
 	useEffect(() => {
-		composer.setPixelRatio(gl.getPixelRatio());
-		composer.setSize(size.width, size.height);
-	}, [composer, gl, size.height, size.width]);
+		if (!pipeline) return;
+		pipeline.composer.setPixelRatio(gl.getPixelRatio());
+		pipeline.composer.setSize(size.width, size.height);
+	}, [pipeline, gl, size.height, size.width]);
 
 	useEffect(() => {
+		if (!pipeline) return;
+		const { effectPass } = pipeline;
 		effectPass.uniforms.uPixelSize.value = ditherPixelSize;
 		effectPass.uniforms.uDitherMode.value = ditherMode;
 		effectPass.uniforms.uDitherStrength.value = ditherStrength;
 		effectPass.uniforms.uNoiseStrength.value = noiseStrength;
 		effectPass.uniforms.uNoiseScale.value = noiseScale;
-	}, [ditherMode, ditherPixelSize, ditherStrength, effectPass, noiseScale, noiseStrength]);
+	}, [ditherMode, ditherPixelSize, ditherStrength, pipeline, noiseScale, noiseStrength]);
 
-	useEffect(() => () => composer.dispose(), [composer]);
+	useEffect(() => () => {
+		pipeline?.effectPass.dispose();
+		pipeline?.composer.dispose();
+	}, [pipeline]);
+	const renderFrame = useCallback(() => {
+		if (pipeline) pipeline.composer.render();
+		else gl.render(scene, camera);
+	}, [camera, gl, pipeline, scene]);
 	useFrame(() => {
-		if (!diagnostics) composer.render();
+		if (!diagnostics) renderFrame();
 	}, 1);
-	return diagnostics ? <FlowerFieldSceneMetrics {...diagnostics} renderFrame={() => composer.render()} /> : null;
+	return diagnostics ? <FlowerFieldSceneMetrics {...diagnostics} renderFrame={renderFrame} /> : null;
 }
 
 function chunkFootprint(centerX: number, centerZ: number, aspectRatio: number) {

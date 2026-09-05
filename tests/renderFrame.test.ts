@@ -1,6 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { WebGLRenderer } from 'three';
-import { renderWithFrameStats } from '../src/field/renderFrame';
+import { needsPostprocessing, renderWithFrameStats } from '../src/field/renderFrame';
+
+describe('postprocessing selection', () => {
+	it.each([
+		[0, 0, false],
+		[0.5, 0, true],
+		[0, 0.5, true],
+		[0.5, 0.5, true],
+		[0.001, 0, true],
+	])('selects effects for dither=%s, noise=%s: %s', (dither, noise, enabled) => {
+		expect(needsPostprocessing(dither, noise)).toBe(enabled);
+	});
+});
 
 describe('measured render frame', () => {
 	it.each([true, false])('renders once, accumulates every pass and restores autoReset=%s', (autoReset) => {
