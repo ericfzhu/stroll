@@ -33,6 +33,17 @@ function weather(overrides: Partial<WeatherData> = {}): WeatherData {
 }
 
 describe('flower field weather atmosphere', () => {
+	it.each([DEFAULT_SKY_COLOR, '#273a45', '#d96f91'])('retains the clear-day gradient without API data for %s', (skyColor) => {
+		const options = { fallbackSkyColor: skyColor, baseSunStrength: 0.2, now: 30_000 };
+		const fallback = createFlowerFieldAtmosphere(null, options);
+		const clear = createFlowerFieldAtmosphere(weather(), options);
+		expect(fallback.zenithColor).toBe(clear.zenithColor);
+		expect(fallback.horizonColor).toBe(clear.horizonColor);
+		expect(fallback.horizonColor).not.toBe(fallback.zenithColor);
+		expect(fallback.fogColor).toBe(fallback.horizonColor);
+		expect(fallback.rainIntensity).toBe(0);
+	});
+
 	it.each([
 		[211, 'thunderstorm'],
 		[311, 'light-rain'],

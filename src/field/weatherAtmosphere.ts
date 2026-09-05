@@ -162,11 +162,12 @@ export function createFlowerFieldAtmosphere(
 	{ fallbackSkyColor, baseSunStrength, now = Date.now() / 1000 }: AtmosphereOptions,
 ): FlowerFieldAtmosphere {
 	if (!weather) {
+		const horizonColor = applySkyColorShift(DAY_PALETTES.clear.horizon, fallbackSkyColor);
 		return {
 			state: 'clear',
 			zenithColor: fallbackSkyColor,
-			horizonColor: fallbackSkyColor,
-			fogColor: fallbackSkyColor,
+			horizonColor,
+			fogColor: horizonColor,
 			fogNear: 30,
 			fogFar: 90,
 			sunColor: '#fff2cf',
