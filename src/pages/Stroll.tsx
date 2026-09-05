@@ -39,6 +39,12 @@ export default function Stroll() {
 					/>
 				)}
 			</div>
+			{ready && !weatherLoading && (
+				<p className="flower-field-location">
+					Sydney, Australia
+					<span className="flower-field-coordinates">33.8688° S · 151.2093° E</span>
+				</p>
+			)}
 			{(!ready || weatherLoading) && <FlowerFieldLoading />}
 		</main>
 	);
