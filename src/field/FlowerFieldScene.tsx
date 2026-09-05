@@ -289,7 +289,7 @@ function BackgroundSphere({ zenithColor, horizonColor, sunColor, sunDirection, s
 			varying vec3 vDirection;
 			void main() {
 				vec3 direction = normalize(vDirection);
-				float skyGradient = smoothstep(-0.12, 0.62, direction.y);
+				float skyGradient = smoothstep(-0.03, 0.16, direction.y);
 				vec3 color = mix(uHorizonColor, uZenithColor, skyGradient);
 				float sunAlignment = max(dot(direction, normalize(uSunDirection)), 0.0);
 				float sunDisc = pow(sunAlignment, 850.0);

@@ -1,3 +1,4 @@
+import { DEFAULT_SKY_COLOR } from '../field/weatherAtmosphere';
 import { useCallback, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import FlowerFieldLoading from '../field/FlowerFieldLoading';
@@ -20,7 +21,7 @@ export default function Stroll() {
 						cameraHeight={10}
 						cameraAngle={15}
 						showChunkBoundaries={false}
-						skyColor="#77c4ee"
+						skyColor={DEFAULT_SKY_COLOR}
 						sunStrength={0.2}
 						cameraSpeed={reducedMotion ? 0 : 0.54}
 						windSpeed={1}

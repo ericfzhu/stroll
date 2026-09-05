@@ -1,3 +1,4 @@
+import { DEFAULT_SKY_COLOR } from '../field/weatherAtmosphere';
 import { useCallback, useMemo, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -59,7 +60,7 @@ export default function FlowerFieldDemo() {
 	const [cameraHeight, setCameraHeight] = useState(7);
 	const [cameraAngle, setCameraAngle] = useState(15);
 	const [showChunkBoundaries, setShowChunkBoundaries] = useState(false);
-	const [skyColor, setSkyColor] = useState('#77c4ee');
+	const [skyColor, setSkyColor] = useState(DEFAULT_SKY_COLOR);
 	const [sunStrength, setSunStrength] = useState(0.2);
 	const [cameraSpeed, setCameraSpeed] = useState(reducedMotion ? 0 : 0.54);
 	const [windSpeed, setWindSpeed] = useState(1);

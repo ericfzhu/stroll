@@ -27,7 +27,9 @@ cp .dev.vars.example .dev.vars
 yarn dev
 ```
 
-Set `OPENWEATHERMAP_API_KEY` in `.dev.vars`. The Vite frontend runs at `http://127.0.0.1:8788`; the local Cloudflare Worker runs at `http://127.0.0.1:8789` and is proxied automatically.
+Set `OPENWEATHERMAP_API_KEY` in `.dev.vars`. `yarn dev` finds two available ports in **8788–8899**, preferring 8788 for Vite and 8789 for the local Cloudflare Worker. It prints both URLs and configures the API proxy automatically. Wrangler's debugger uses an OS-assigned port to avoid clashes between dev sessions.
+
+Set a different range with `DEV_PORT_START=9000 DEV_PORT_END=9099 yarn dev`. Optional `DEV_PORT` and `FUNCTIONS_PORT` values select preferred ports within that range; occupied ports fall back to another available port. Startup fails with a clear message if fewer than two ports are available. `yarn dev:vite` remains a standalone Vite command with a fixed port.
 
 ## Checks
 

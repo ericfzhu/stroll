@@ -1,13 +1,26 @@
 import { spawn } from 'node:child_process';
+import { selectDevPorts } from './devPorts.mjs';
 
-const functionsPort = process.env.FUNCTIONS_PORT || '8789';
+let ports;
+try {
+	ports = await selectDevPorts();
+} catch (error) {
+	console.error(`Could not start development servers: ${error.message}`);
+	process.exit(1);
+}
+const { devPort, functionsPort } = ports;
+const env = { ...process.env, DEV_PORT: String(devPort), FUNCTIONS_PORT: String(functionsPort) };
+console.log(`Frontend: http://127.0.0.1:${devPort}`);
+console.log(`Worker:   http://127.0.0.1:${functionsPort}`);
 
 const processes = [
-	spawn('yarn', ['exec', 'wrangler', 'dev', '--assets', 'public', '--port', functionsPort, '--show-interactive-dev-session=false'], {
+	spawn('yarn', ['exec', 'wrangler', 'dev', '--assets', 'public', '--ip', '127.0.0.1', '--port', String(functionsPort), '--inspector-port', '0', '--show-interactive-dev-session=false'], {
 		stdio: 'inherit',
+		env,
 	}),
 	spawn('yarn', ['exec', 'vite'], {
 		stdio: 'inherit',
+		env,
 	}),
 ];
 

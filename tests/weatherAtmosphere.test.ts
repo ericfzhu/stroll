@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Color } from 'three';
 import {
 	createFlowerFieldAtmosphere,
+	DEFAULT_SKY_COLOR,
 	weatherStateFromCode,
 } from '../src/field/weatherAtmosphere';
 import type { WeatherData } from '../src/weather/weatherTypes';
@@ -50,12 +51,12 @@ describe('flower field weather atmosphere', () => {
 
 	it('moves the sun across the sky between sunrise and sunset', () => {
 		const morning = createFlowerFieldAtmosphere(weather(), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 20_000,
 		});
 		const afternoon = createFlowerFieldAtmosphere(weather(), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 40_000,
 		});
@@ -67,17 +68,17 @@ describe('flower field weather atmosphere', () => {
 
 	it('dims the sun with cloud cover and removes it at night', () => {
 		const clear = createFlowerFieldAtmosphere(weather(), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});
 		const overcast = createFlowerFieldAtmosphere(weather({ conditionCode: 804, cloudCover: 100 }), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});
 		const night = createFlowerFieldAtmosphere(weather(), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 0,
 		});
@@ -91,12 +92,12 @@ describe('flower field weather atmosphere', () => {
 
 	it('hides most nighttime stars behind cloud cover', () => {
 		const clearNight = createFlowerFieldAtmosphere(weather(), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 0,
 		});
 		const cloudyNight = createFlowerFieldAtmosphere(weather({ cloudCover: 90 }), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 0,
 		});
@@ -106,12 +107,12 @@ describe('flower field weather atmosphere', () => {
 
 	it('brings fog closer when visibility is low', () => {
 		const clear = createFlowerFieldAtmosphere(weather(), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});
 		const fog = createFlowerFieldAtmosphere(weather({ conditionCode: 741, visibility: 2 }), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});
@@ -121,7 +122,7 @@ describe('flower field weather atmosphere', () => {
 
 	it('uses the selected sky color for both zenith and horizon without changing the default palette', () => {
 		const defaultSky = createFlowerFieldAtmosphere(weather(), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});
@@ -131,8 +132,8 @@ describe('flower field weather atmosphere', () => {
 			now: 30_000,
 		});
 
-		expect(defaultSky.zenithColor).toBe('#77c4ee');
-		expect(defaultSky.horizonColor).toBe('#d8edf1');
+		expect(defaultSky.zenithColor).toBe(DEFAULT_SKY_COLOR);
+		expect(defaultSky.horizonColor).toBe('#b2dcef');
 		expect(adjustedSky.zenithColor).not.toBe(defaultSky.zenithColor);
 		expect(adjustedSky.horizonColor).not.toBe(defaultSky.horizonColor);
 	});
@@ -162,24 +163,54 @@ describe('flower field weather atmosphere', () => {
 		expect(horizon.g).toBeCloseTo(horizon.b, 5);
 	});
 
+	it('preserves blue gaps under scattered clouds but mutes a closed cloud deck', () => {
+		const options = { fallbackSkyColor: DEFAULT_SKY_COLOR, baseSunStrength: 0.2, now: 30_000 };
+		const clear = createFlowerFieldAtmosphere(weather(), options);
+		const scattered = createFlowerFieldAtmosphere(weather({ cloudCover: 45 }), options);
+		const covered = createFlowerFieldAtmosphere(weather({ cloudCover: 100 }), options);
+		expect(scattered.zenithColor).toBe(clear.zenithColor);
+		expect(scattered.horizonColor).toBe(clear.horizonColor);
+		const saturation = (color: string) => new Color(color).getHSL({ h: 0, s: 0, l: 0 }).s;
+		expect(saturation(covered.zenithColor)).toBeLessThan(saturation(clear.zenithColor));
+		const rain = createFlowerFieldAtmosphere(weather({ conditionCode: 502, cloudCover: 95 }), options);
+		expect(saturation(rain.zenithColor)).toBeLessThan(saturation(scattered.zenithColor));
+	});
+
+	it.each([10_000, 50_000])('warms the horizon near solar event %i, with less warmth in overcast weather', (now) => {
+		const options = { fallbackSkyColor: DEFAULT_SKY_COLOR, baseSunStrength: 0.2, now };
+		const twilight = createFlowerFieldAtmosphere(weather(), options);
+		const midday = createFlowerFieldAtmosphere(weather(), { ...options, now: 30_000 });
+		const covered = createFlowerFieldAtmosphere(weather({ conditionCode: 804, cloudCover: 100 }), options);
+		const warmth = (color: string) => {
+			const rgb = new Color(color);
+			return rgb.r - rgb.b;
+		};
+		expect(warmth(twilight.horizonColor)).toBeGreaterThan(warmth(midday.horizonColor));
+		expect(warmth(twilight.sunColor)).toBeGreaterThan(warmth(midday.sunColor));
+		expect(warmth(covered.horizonColor)).toBeLessThan(warmth(twilight.horizonColor));
+		const night = createFlowerFieldAtmosphere(weather(), { ...options, now: 60_000 });
+		expect(night.zenithColor).toBe('#07111d');
+		expect(night.horizonColor).toBe('#182630');
+	});
+
 	it('adds precipitation only for rainy weather states', () => {
 		const clear = createFlowerFieldAtmosphere(weather(), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});
 		const lightRain = createFlowerFieldAtmosphere(weather({ conditionCode: 500 }), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});
 		const heavyRain = createFlowerFieldAtmosphere(weather({ conditionCode: 502 }), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});
 		const thunderstorm = createFlowerFieldAtmosphere(weather({ conditionCode: 211 }), {
-			fallbackSkyColor: '#77c4ee',
+			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});

@@ -41,9 +41,11 @@ interface Palette {
 	fogDistance: number;
 }
 
+export const DEFAULT_SKY_COLOR = '#389ddd';
+
 const DAY_PALETTES: Record<FlowerFieldWeatherState, Palette> = {
-	clear: { zenith: '#77c4ee', horizon: '#d8edf1', sun: '#fff1c5', fogDistance: 90 },
-	'light-clouds': { zenith: '#79b7d8', horizon: '#d5e1df', sun: '#f9e8c4', fogDistance: 88 },
+	clear: { zenith: DEFAULT_SKY_COLOR, horizon: '#b2dcef', sun: '#fff1c5', fogDistance: 90 },
+	'light-clouds': { zenith: '#439fd8', horizon: '#bcd9e6', sun: '#f9e8c4', fogDistance: 88 },
 	'heavy-clouds': { zenith: '#788e9b', horizon: '#b7c0bf', sun: '#e7dfcf', fogDistance: 80 },
 	haze: { zenith: '#91adb3', horizon: '#d8cbae', sun: '#f1c990', fogDistance: 68 },
 	fog: { zenith: '#a9b5b5', horizon: '#d2d5cf', sun: '#ded9c9', fogDistance: 48 },
@@ -57,7 +59,7 @@ const DAY_PALETTES: Record<FlowerFieldWeatherState, Palette> = {
 const NIGHT_ZENITH = new THREE.Color('#07111d');
 const NIGHT_HORIZON = new THREE.Color('#182630');
 const NIGHT_SUN = new THREE.Color('#8fa3b4');
-const DEFAULT_SKY_COLOR = new THREE.Color('#77c4ee');
+const DEFAULT_SKY_REFERENCE = new THREE.Color(DEFAULT_SKY_COLOR);
 const DEFAULT_SUN_DIRECTION = new THREE.Vector3(-0.48, 0.78, -0.4).normalize();
 
 const WEATHER_COLOR_INFLUENCE: Record<FlowerFieldWeatherState, number> = {
@@ -125,7 +127,9 @@ function sunDirectionAt(now: number, sunrise: number, sunset: number) {
 
 function colorWithCloudCover(color: string, cloudCover: number, target: string) {
 	return `#${new THREE.Color(color)
-		.lerp(new THREE.Color(target), THREE.MathUtils.clamp(cloudCover / 100, 0, 1) * 0.18)
+		// Scattered clouds leave blue gaps; only a nearly closed cloud deck
+		// adds a broad grey cast on top of the weather condition palette.
+		.lerp(new THREE.Color(target), smoothstep(65, 100, cloudCover) * 0.18)
 		.getHexString()}`;
 }
 
@@ -143,7 +147,7 @@ function applySkyColorShift(baseColor: string, skyColor: string) {
 	// blues unevenly and can turn their horizon (and fog) yellow.
 	const base = new THREE.Color(baseColor).getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace);
 	const selected = new THREE.Color(skyColor).getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace);
-	const reference = DEFAULT_SKY_COLOR.getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace);
+	const reference = DEFAULT_SKY_REFERENCE.getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace);
 	const shiftedColor = new THREE.Color().setHSL(
 		base.h + selected.h - reference.h,
 		base.s * selected.s / reference.s,
@@ -183,9 +187,15 @@ export function createFlowerFieldAtmosphere(
 	const tintedHorizon = weatherTint(shiftedHorizon, palette.horizon, WEATHER_COLOR_INFLUENCE[state]);
 	const dayZenith = colorWithCloudCover(tintedZenith, cloudCover, '#87969c');
 	const dayHorizon = colorWithCloudCover(tintedHorizon, cloudCover, '#aeb6b5');
-	const zenithColor = nightBlend(dayZenith, NIGHT_ZENITH, daylight);
-	const horizonColor = nightBlend(dayHorizon, NIGHT_HORIZON, daylight);
-	const sunColor = nightBlend(palette.sun, NIGHT_SUN, daylight);
+	// Warmth is confined to the hour around sunrise/sunset and subdued by
+	// opaque weather. Most of the daytime sky keeps its selected blue.
+	const solarEventDistance = Math.min(Math.abs(now - weather.sunrise), Math.abs(now - weather.sunset));
+	const twilight = (1 - smoothstep(0, 60 * 60, solarEventDistance))
+		* (1 - WEATHER_COLOR_INFLUENCE[state] * 0.85)
+		* (1 - smoothstep(65, 100, cloudCover) * 0.5);
+	const zenithColor = weatherTint(nightBlend(dayZenith, NIGHT_ZENITH, daylight), '#8c8fbb', twilight * 0.16);
+	const horizonColor = weatherTint(nightBlend(dayHorizon, NIGHT_HORIZON, daylight), '#efb39d', twilight * 0.65);
+	const sunColor = weatherTint(nightBlend(palette.sun, NIGHT_SUN, daylight), '#ffc08b', twilight * 0.75);
 	const cloudTransmission = 1 - cloudCover / 100 * 0.68;
 	const starTransmission = 1 - cloudCover / 100 * 0.94;
 	const visibilityDistance = THREE.MathUtils.clamp(weather.visibility * 9, 38, 90);
