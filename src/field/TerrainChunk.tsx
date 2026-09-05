@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { updateGrassBounds } from './grassBounds';
 import { createGrassIndices, GRASS_DETAIL_RANGES, grassDensityForDistance, grassDetailForDistance } from './grassLod';
 import {
 	CHUNK_SIZE,
@@ -27,7 +28,8 @@ function createGrassGeometry(x: number, z: number, count: number) {
 	geometry.instanceCount = 0;
 	geometry.setIndex(new THREE.BufferAttribute(createGrassIndices(), 1));
 	geometry.setDrawRange(GRASS_DETAIL_RANGES.near.start, GRASS_DETAIL_RANGES.near.count);
-	geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1 + CHUNK_SIZE / 2);
+	geometry.boundingSphere = new THREE.Sphere();
+	updateGrassBounds(geometry.boundingSphere, 0);
 
 	const positions = new Float32Array(count * 3);
 	const random = mulberry32(chunkSeed(x, z, 0xdecafbad));
@@ -79,6 +81,7 @@ export default function TerrainChunk({ x, z, baseGrassCount, terrainMaterial, gr
 			camera.position.z - z * CHUNK_SIZE,
 		);
 		const grassCount = Math.round(baseGrassCount * grassDensityForDistance(distance));
+		updateGrassBounds(geometry.boundingSphere!, distance);
 		const detail = grassDetailForDistance(distance, GRASS_CHUNK_RADIUS);
 		if (geometry.drawRange.start !== detail.start) geometry.setDrawRange(detail.start, detail.count);
 		if (grassCount === grassCountRef.current) return;

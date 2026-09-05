@@ -619,9 +619,29 @@ interface FlowerFieldWorldProps extends Omit<FlowerFieldSceneProps, 'reducedMoti
 }
 
 function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, onReady, diagnosticsRef }: FlowerFieldWorldProps) {
+	const [liveNow, setLiveNow] = useState(() => Date.now() / 1000);
+	useEffect(() => {
+		if (weatherNow !== undefined) return;
+		const update = () => setLiveNow(Date.now() / 1000);
+		update();
+		const interval = window.setInterval(update, 15_000);
+		document.addEventListener('visibilitychange', update);
+		return () => {
+			window.clearInterval(interval);
+			document.removeEventListener('visibilitychange', update);
+		};
+	}, [weatherNow]);
 	const atmosphere = useMemo(
-		() => createFlowerFieldAtmosphere(weather ?? null, { fallbackSkyColor: skyColor, baseSunStrength: sunStrength, now: weatherNow }),
-		[skyColor, sunStrength, weather, weatherNow],
+		() => createFlowerFieldAtmosphere(weather ?? null, {
+			fallbackSkyColor: skyColor,
+			baseSunStrength: sunStrength,
+			now: weatherNow ?? liveNow,
+			// Only the demo's explicit clock uses its synthetic solar events.
+			solarTimes: weatherNow !== undefined && weather
+				? { sunrise: weather.sunrise, sunset: weather.sunset }
+				: undefined,
+		}),
+		[skyColor, sunStrength, weather, weatherNow, liveNow],
 	);
 	const atmosphericWindSpeed = weather?.windSpeed ?? windSpeed;
 	const atmosphericWindDirection = weather ? THREE.MathUtils.degToRad(weather.windDirection) : windDirection;

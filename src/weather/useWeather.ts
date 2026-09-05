@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { WeatherData } from './weatherTypes';
+import { fetchWeather, WeatherTimeoutError } from './fetchWeather';
 
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
@@ -9,26 +10,26 @@ export default function useWeather() {
 
 	useEffect(() => {
 		let active = true;
-		const fetchWeather = async () => {
+		let timedOut = false;
+		const controller = new AbortController();
+		const refresh = async () => {
+			if (timedOut) return;
 			try {
-				const response = await fetch('/api/weather');
-				if (!response.ok) {
-					console.error('Weather API error:', response.status);
-					return;
-				}
-				const data: WeatherData | { error: string } = await response.json();
-				if (active && !('error' in data)) setWeather(data);
+				const data = await fetchWeather(controller.signal);
+				if (active) setWeather(data);
 			} catch (error) {
-				console.error('Failed to fetch weather:', error);
+				if (error instanceof WeatherTimeoutError) timedOut = true;
+				else if (active) console.error('Failed to fetch weather:', error);
 			} finally {
 				if (active) setLoading(false);
 			}
 		};
 
-		void fetchWeather();
-		const interval = window.setInterval(fetchWeather, REFRESH_INTERVAL_MS);
+		void refresh();
+		const interval = window.setInterval(refresh, REFRESH_INTERVAL_MS);
 		return () => {
 			active = false;
+			controller.abort();
 			window.clearInterval(interval);
 		};
 	}, []);

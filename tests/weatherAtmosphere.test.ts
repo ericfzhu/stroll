@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { Color } from 'three';
 import {
-	createFlowerFieldAtmosphere,
+	createFlowerFieldAtmosphere as calculateAtmosphere,
 	DEFAULT_SKY_COLOR,
 	weatherStateFromCode,
 } from '../src/field/weatherAtmosphere';
 import type { WeatherData } from '../src/weather/weatherTypes';
+
+// Fixed solar events keep palette tests independent of real-world dates.
+function createFlowerFieldAtmosphere(weather: WeatherData | null, options: Parameters<typeof calculateAtmosphere>[1]) {
+	return calculateAtmosphere(weather, { ...options, solarTimes: { sunrise: 10_000, sunset: 50_000 } });
+}
 
 function weather(overrides: Partial<WeatherData> = {}): WeatherData {
 	return {
@@ -231,4 +236,20 @@ describe('flower field weather atmosphere', () => {
 		expect(heavyRain.rainIntensity).toBeGreaterThan(lightRain.rainIntensity);
 		expect(thunderstorm.rainIntensity).toBe(heavyRain.rainIntensity);
 	});
+});
+
+it('uses Sydney night lighting without weather and ignores API solar timestamps', () => {
+	const options = { fallbackSkyColor: DEFAULT_SKY_COLOR, baseSunStrength: 0.2, now: Date.parse('2026-06-21T13:00:00Z') / 1000 };
+	const fallback = calculateAtmosphere(null, options);
+	const live = calculateAtmosphere(weather({ sunrise: 0, sunset: Number.MAX_SAFE_INTEGER }), options);
+	expect(fallback.starVisibility).toBe(1);
+	expect(fallback.sunStrength).toBe(0);
+	expect(live.zenithColor).toBe(fallback.zenithColor);
+	expect(live.starVisibility).toBe(fallback.starVisibility);
+});
+
+it('uses Sydney daylight without weather', () => {
+	const atmosphere = calculateAtmosphere(null, { fallbackSkyColor: DEFAULT_SKY_COLOR, baseSunStrength: 0.2, now: Date.parse('2026-06-21T02:00:00Z') / 1000 });
+	expect(atmosphere.starVisibility).toBe(0);
+	expect(atmosphere.sunStrength).toBe(0.2);
 });

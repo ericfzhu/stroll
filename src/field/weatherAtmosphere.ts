@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { sydneySolarTimes, type SolarTimes } from '../weather/sydneySolarTime';
 import type { WeatherData } from '../weather/weatherTypes';
 
 export type FlowerFieldWeatherState =
@@ -32,6 +33,7 @@ interface AtmosphereOptions {
 	fallbackSkyColor: string;
 	baseSunStrength: number;
 	now?: number;
+	solarTimes?: SolarTimes;
 }
 
 interface Palette {
@@ -159,30 +161,13 @@ function applySkyColorShift(baseColor: string, skyColor: string) {
 
 export function createFlowerFieldAtmosphere(
 	weather: WeatherData | null,
-	{ fallbackSkyColor, baseSunStrength, now = Date.now() / 1000 }: AtmosphereOptions,
+	{ fallbackSkyColor, baseSunStrength, now = Date.now() / 1000, solarTimes = sydneySolarTimes(now) }: AtmosphereOptions,
 ): FlowerFieldAtmosphere {
-	if (!weather) {
-		const horizonColor = applySkyColorShift(DAY_PALETTES.clear.horizon, fallbackSkyColor);
-		return {
-			state: 'clear',
-			zenithColor: fallbackSkyColor,
-			horizonColor,
-			fogColor: horizonColor,
-			fogNear: 30,
-			fogFar: 90,
-			sunColor: '#fff2cf',
-			sunDirection: DEFAULT_SUN_DIRECTION.clone(),
-			sunStrength: baseSunStrength,
-			sunVisibility: 0,
-			starVisibility: 0,
-			rainIntensity: 0,
-		};
-	}
 
-	const state = weatherStateFromCode(weather.conditionCode);
+	const state = weatherStateFromCode(weather?.conditionCode ?? 800);
 	const palette = DAY_PALETTES[state];
-	const daylight = daylightAt(now, weather.sunrise, weather.sunset);
-	const cloudCover = THREE.MathUtils.clamp(weather.cloudCover, 0, 100);
+	const daylight = daylightAt(now, solarTimes.sunrise, solarTimes.sunset);
+	const cloudCover = THREE.MathUtils.clamp(weather?.cloudCover ?? 0, 0, 100);
 	const tintedZenith = weatherTint(fallbackSkyColor, palette.zenith, WEATHER_COLOR_INFLUENCE[state]);
 	const shiftedHorizon = applySkyColorShift(palette.horizon, fallbackSkyColor);
 	const tintedHorizon = weatherTint(shiftedHorizon, palette.horizon, WEATHER_COLOR_INFLUENCE[state]);
@@ -190,7 +175,7 @@ export function createFlowerFieldAtmosphere(
 	const dayHorizon = colorWithCloudCover(tintedHorizon, cloudCover, '#aeb6b5');
 	// Warmth is confined to the hour around sunrise/sunset and subdued by
 	// opaque weather. Most of the daytime sky keeps its selected blue.
-	const solarEventDistance = Math.min(Math.abs(now - weather.sunrise), Math.abs(now - weather.sunset));
+	const solarEventDistance = Math.min(Math.abs(now - solarTimes.sunrise), Math.abs(now - solarTimes.sunset));
 	const twilight = (1 - smoothstep(0, 60 * 60, solarEventDistance))
 		* (1 - WEATHER_COLOR_INFLUENCE[state] * 0.85)
 		* (1 - smoothstep(65, 100, cloudCover) * 0.5);
@@ -199,7 +184,7 @@ export function createFlowerFieldAtmosphere(
 	const sunColor = weatherTint(nightBlend(palette.sun, NIGHT_SUN, daylight), '#ffc08b', twilight * 0.75);
 	const cloudTransmission = 1 - cloudCover / 100 * 0.68;
 	const starTransmission = 1 - cloudCover / 100 * 0.94;
-	const visibilityDistance = THREE.MathUtils.clamp(weather.visibility * 9, 38, 90);
+	const visibilityDistance = THREE.MathUtils.clamp((weather?.visibility ?? 10) * 9, 38, 90);
 	const fogFar = Math.min(palette.fogDistance, visibilityDistance);
 
 	return {
@@ -210,7 +195,7 @@ export function createFlowerFieldAtmosphere(
 		fogNear: Math.max(18, fogFar * 0.42),
 		fogFar,
 		sunColor,
-		sunDirection: sunDirectionAt(now, weather.sunrise, weather.sunset),
+		sunDirection: sunDirectionAt(now, solarTimes.sunrise, solarTimes.sunset),
 		sunStrength: baseSunStrength * daylight * cloudTransmission,
 		sunVisibility: daylight * cloudTransmission,
 		starVisibility: (1 - daylight) * starTransmission,
