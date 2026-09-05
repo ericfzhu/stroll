@@ -33,7 +33,7 @@ export default function Stroll() {
 						noiseStrength={0}
 						noiseScale={0.35}
 						weather={weather}
-						cloudRendering="sheet"
+						cloudRendering="stylized"
 						onReady={handleReady}
 					/>
 				)}
