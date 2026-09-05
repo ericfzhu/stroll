@@ -99,10 +99,8 @@ export default function TerrainChunk({ x, z, baseGrassCount, terrainMaterial, gr
 		geometry.instanceCount = grassCount;
 	});
 
-	useEffect(() => () => {
-		terrainGeometry.dispose();
-		grassGeometry.dispose();
-	}, [grassGeometry, terrainGeometry]);
+	useEffect(() => () => terrainGeometry.dispose(), [terrainGeometry]);
+	useEffect(() => () => grassGeometry.dispose(), [grassGeometry]);
 
 	return (
 		<group position={[x * CHUNK_SIZE, 0, z * CHUNK_SIZE]} dispose={null}>

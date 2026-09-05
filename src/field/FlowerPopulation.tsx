@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from 'react';
+/* eslint-disable react/immutability -- Three.js uniforms are mutable GPU state, updated after React commits. */
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { createNoise2D } from 'simplex-noise';
 import * as THREE from 'three';
@@ -404,7 +405,7 @@ export default function FlowerPopulation({
 		}
 		return generated;
 	}, []);
-	const material = useMemo(() => new THREE.ShaderMaterial({
+	const [material] = useState(() => new THREE.ShaderMaterial({
 		uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.lights, {
 			uTime: { value: 0 },
 			uNoiseTexture: { value: noiseTexture },
@@ -433,7 +434,19 @@ export default function FlowerPopulation({
 		fragmentShader: flowerFragmentShader,
 		side: THREE.DoubleSide,
 		lights: true,
-	}), [noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength]);
+	}));
+
+	useLayoutEffect(() => {
+		material.uniforms.uNoiseTexture.value = noiseTexture;
+		material.uniforms.uSunDirection.value.copy(sunDirection);
+		material.uniforms.uSunStrength.value = sunStrength * FLOWER_SUN_MULTIPLIER;
+		material.uniforms.uSunColor.value.set(sunColor);
+		material.uniforms.uSkyLightColor.value.set(skyColor).lerp(new THREE.Color('#ffffff'), 0.55);
+		material.uniforms.uWindDirection.value = windDirection;
+		material.uniforms.uWindScale.value = windScale;
+		material.uniforms.uWindStrength.value = windStrength;
+		material.uniforms.uWindSpeed.value = windSpeed;
+	}, [noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength, material]);
 	const tileCache = useMemo(() => new FlowerTileCache(candidatesPerChunk), [candidatesPerChunk]);
 	const population = useMemo(() => {
 		// Diagnostics intentionally sample the wall time of this deterministic rebuild.
@@ -480,8 +493,8 @@ export default function FlowerPopulation({
 
 	useEffect(() => () => {
 		geometries.forEach((geometry) => geometry.dispose());
-		material.dispose();
-	}, [geometries, material]);
+	}, [geometries]);
+	useEffect(() => () => material.dispose(), [material]);
 
 	return (
 		<>

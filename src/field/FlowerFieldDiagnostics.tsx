@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import { renderWithFrameStats } from './renderFrame';
 import {
 	createFlowerFieldDiagnosticValues,
 	type FlowerFieldDiagnosticHistory,
@@ -33,7 +34,8 @@ interface GpuTimer {
 	pending: boolean;
 }
 
-export function FlowerFieldSceneMetrics({ metricsRef, historyRef }: {
+export function FlowerFieldSceneMetrics({ metricsRef, historyRef, renderFrame }: {
+	renderFrame: () => void;
 	metricsRef: RefObject<FlowerFieldDiagnosticValues>;
 	historyRef: RefObject<FlowerFieldDiagnosticHistory>;
 }) {
@@ -58,7 +60,7 @@ export function FlowerFieldSceneMetrics({ metricsRef, historyRef }: {
 		};
 	}, [gl]);
 
-	useFrame(({ camera, gl, scene }, delta) => {
+	useFrame(({ gl }, delta) => {
 		const gpuTimer = gpuTimerRef.current;
 		if (gpuTimer?.pending) {
 			const available = gpuTimer.context.getQueryParameter(gpuTimer.query, gpuTimer.context.QUERY_RESULT_AVAILABLE) as boolean;
@@ -73,10 +75,13 @@ export function FlowerFieldSceneMetrics({ metricsRef, historyRef }: {
 
 		const measureGpuFrame = gpuTimer !== null && !gpuTimer.pending;
 		if (measureGpuFrame) gpuTimer.context.beginQuery(gpuTimer.extension.TIME_ELAPSED_EXT, gpuTimer.query);
-		gl.render(scene, camera);
-		if (measureGpuFrame) {
-			gpuTimer.context.endQuery(gpuTimer.extension.TIME_ELAPSED_EXT);
-			gpuTimer.pending = true;
+		try {
+			renderWithFrameStats(gl, renderFrame);
+		} finally {
+			if (measureGpuFrame) {
+				gpuTimer.context.endQuery(gpuTimer.extension.TIME_ELAPSED_EXT);
+				gpuTimer.pending = true;
+			}
 		}
 
 		historyRef.current.activeElapsedSeconds += Math.min(delta, 0.25);

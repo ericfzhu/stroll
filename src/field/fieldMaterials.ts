@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react';
+/* eslint-disable react/immutability -- Three.js uniforms are mutable GPU state, updated after React commits. */
+import { useEffect, useLayoutEffect, useState } from 'react';
 import * as THREE from 'three';
 import grassIncludes from './shaders/grass.includes.glsl?raw';
 import grassVertexSource from './shaders/grass.vertex.glsl?raw';
@@ -28,7 +29,7 @@ export function useInfiniteTerrainMaterial(
 	noiseStrength: number,
 	noiseScale: number,
 ) {
-	const material = useMemo(() => new THREE.ShaderMaterial({
+	const [material] = useState(() => new THREE.ShaderMaterial({
 		uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.lights, {
 			uBaseColor: { value: new THREE.Color('#908343') },
 			uCircleCenter: { value: new THREE.Vector3() },
@@ -50,7 +51,17 @@ export function useInfiniteTerrainMaterial(
 		vertexShader: terrainVertexShader,
 		fragmentShader: terrainFragmentShader,
 		lights: true,
-	}), [ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, sunDirection, sunStrength]);
+	}));
+
+	useLayoutEffect(() => {
+		material.uniforms.uNoiseTexture.value = noiseTexture;
+		material.uniforms.uNoiseStrength.value = noiseStrength;
+		material.uniforms.uNoiseScale.value = noiseScale;
+		material.uniforms.uPixelSize.value = ditherPixelSize;
+		material.uniforms.uDitherMode.value = ditherMode;
+		material.uniforms.uSunDirection.value.copy(sunDirection);
+		material.uniforms.uSunStrength.value = sunStrength;
+	}, [ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, sunDirection, sunStrength, material]);
 
 	useEffect(() => () => material.dispose(), [material]);
 	return material;
@@ -71,7 +82,7 @@ export function useInfiniteGrassMaterial(
 	noiseStrength: number,
 	noiseScale: number,
 ) {
-	const material = useMemo(() => new THREE.ShaderMaterial({
+	const [material] = useState(() => new THREE.ShaderMaterial({
 		uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.lights, {
 			uPixelSize: { value: ditherPixelSize },
 			uDitherMode: { value: ditherMode },
@@ -115,7 +126,23 @@ export function useInfiniteGrassMaterial(
 		fragmentShader: grassFragmentShader,
 		side: THREE.FrontSide,
 		lights: true,
-	}), [ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength]);
+	}));
+
+	useLayoutEffect(() => {
+		material.uniforms.uNoiseTexture.value = noiseTexture;
+		material.uniforms.uNoiseStrength.value = noiseStrength;
+		material.uniforms.uNoiseScale.value = noiseScale;
+		material.uniforms.uPixelSize.value = ditherPixelSize;
+		material.uniforms.uDitherMode.value = ditherMode;
+		material.uniforms.uSunDirection.value.copy(sunDirection);
+		material.uniforms.uSunStrength.value = sunStrength;
+		material.uniforms.uSunColor.value.set(sunColor);
+		material.uniforms.uSkyLightColor.value.set(skyColor).lerp(new THREE.Color('#ffffff'), 0.55);
+		material.uniforms.uWindDirection.value = windDirection;
+		material.uniforms.uWindScale.value = windScale;
+		material.uniforms.uWindStrength.value = windStrength;
+		material.uniforms.uWindSpeed.value = windSpeed;
+	}, [ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength, material]);
 
 	useEffect(() => () => material.dispose(), [material]);
 	return material;

@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -22,6 +22,7 @@ import {
 	createFlowerFieldDiagnosticHistory,
 	createFlowerFieldDiagnosticValues,
 	type FlowerFieldDiagnosticValues,
+	type FlowerFieldDiagnosticHistory,
 } from './flowerFieldDiagnosticState';
 import { useInfiniteGrassMaterial, useInfiniteTerrainMaterial } from './fieldMaterials';
 import { CHUNK_SIZE, FIELD_CURVATURE_RADIUS, FIELD_CURVATURE_START, terrainHeight } from './worldMath';
@@ -141,7 +142,8 @@ const FIELD_EFFECT_FRAGMENT_SHADER = `
 	}
 `;
 
-function FieldRenderEffects({ ditherMode, ditherPixelSize, ditherStrength, noiseStrength, noiseScale }: {
+function FieldRenderEffects({ ditherMode, ditherPixelSize, ditherStrength, noiseStrength, noiseScale, diagnostics }: {
+	diagnostics?: { metricsRef: RefObject<FlowerFieldDiagnosticValues>; historyRef: RefObject<FlowerFieldDiagnosticHistory> };
 	ditherMode: 0 | 1;
 	ditherPixelSize: number;
 	ditherStrength: number;
@@ -188,8 +190,10 @@ function FieldRenderEffects({ ditherMode, ditherPixelSize, ditherStrength, noise
 	}, [ditherMode, ditherPixelSize, ditherStrength, effectPass, noiseScale, noiseStrength]);
 
 	useEffect(() => () => composer.dispose(), [composer]);
-	useFrame(() => composer.render(), 1);
-	return null;
+	useFrame(() => {
+		if (!diagnostics) composer.render();
+	}, 1);
+	return diagnostics ? <FlowerFieldSceneMetrics {...diagnostics} renderFrame={() => composer.render()} /> : null;
 }
 
 function chunkFootprint(centerX: number, centerZ: number, aspectRatio: number) {
@@ -265,7 +269,7 @@ function BackgroundSphere({ zenithColor, horizonColor, sunColor, sunDirection, s
 	sunVisibility: number;
 }) {
 	const meshRef = useRef<THREE.Mesh>(null);
-	const material = useMemo(() => new THREE.ShaderMaterial({
+	const [material] = useState(() => new THREE.ShaderMaterial({
 		uniforms: {
 			uZenithColor: { value: new THREE.Color(zenithColor) },
 			uHorizonColor: { value: new THREE.Color(horizonColor) },
@@ -302,7 +306,15 @@ function BackgroundSphere({ zenithColor, horizonColor, sunColor, sunDirection, s
 		`,
 		side: THREE.BackSide,
 		depthWrite: false,
-	}), [horizonColor, sunColor, sunDirection, sunVisibility, zenithColor]);
+	}));
+	useLayoutEffect(() => {
+		material.uniforms.uZenithColor.value.set(zenithColor);
+		material.uniforms.uHorizonColor.value.set(horizonColor);
+		material.uniforms.uSunColor.value.set(sunColor);
+		material.uniforms.uSunDirection.value.copy(sunDirection);
+		// eslint-disable-next-line react/immutability -- Mutable shader uniform.
+		material.uniforms.uSunVisibility.value = sunVisibility;
+	}, [horizonColor, material, sunColor, sunDirection, sunVisibility, zenithColor]);
 	useFrame(({ camera }) => {
 		meshRef.current?.position.copy(camera.position);
 	});
@@ -984,8 +996,8 @@ export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true
 						onReady={onReady}
 						diagnosticsRef={diagnosticsRef}
 					/>
-					{showDiagnostics && <FlowerFieldSceneMetrics metricsRef={diagnosticsRef} historyRef={diagnosticHistoryRef} />}
 					<FieldRenderEffects
+						diagnostics={showDiagnostics ? { metricsRef: diagnosticsRef, historyRef: diagnosticHistoryRef } : undefined}
 						ditherMode={ditherMode}
 						ditherPixelSize={ditherPixelSize}
 						ditherStrength={ditherStrength}
