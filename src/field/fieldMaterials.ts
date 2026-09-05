@@ -1,10 +1,10 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import grassIncludes from './shaders/grass/includes.glsl?raw';
-import grassVertexSource from './shaders/grass/vertex.glsl?raw';
-import grassFragmentShader from './shaders/grass/fragment.glsl?raw';
-import terrainVertexShader from './shaders/terrain/vertex.glsl?raw';
-import terrainFragmentShader from './shaders/terrain/fragment.glsl?raw';
+import grassIncludes from './shaders/grass.includes.glsl?raw';
+import grassVertexSource from './shaders/grass.vertex.glsl?raw';
+import grassFragmentShader from './shaders/grass.fragment.glsl?raw';
+import terrainVertexShader from './shaders/terrain.vertex.glsl?raw';
+import terrainFragmentShader from './shaders/terrain.fragment.glsl?raw';
 import {
 	GRASS_FAR_TRANSITION_END,
 	GRASS_FAR_TRANSITION_START,

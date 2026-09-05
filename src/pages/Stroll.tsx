@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
-import FlowerFieldLoading from '../features/flower-field/FlowerFieldLoading';
-import FlowerFieldScene from '../features/flower-field/infinite-terrain/FlowerFieldScene';
-import useWeather from '../features/weather/useWeather';
+import FlowerFieldLoading from '../field/FlowerFieldLoading';
+import FlowerFieldScene from '../field/FlowerFieldScene';
+import useWeather from '../weather/useWeather';
 
 export default function Stroll() {
 	const reducedMotion = Boolean(useReducedMotion());

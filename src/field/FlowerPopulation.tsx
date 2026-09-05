@@ -10,9 +10,9 @@ import {
 	ROSE_BLOOM_START,
 	ROSE_STEM_DURATION,
 	type DaisyVariantId,
-} from '../flowerGeometry';
-import flowerVertexShader from './shaders/flowers/vertex.glsl?raw';
-import flowerFragmentShader from './shaders/flowers/fragment.glsl?raw';
+} from './flowerGeometry';
+import flowerVertexShader from './shaders/flowers.vertex.glsl?raw';
+import flowerFragmentShader from './shaders/flowers.fragment.glsl?raw';
 import type { CursorWindState } from './cursorWind';
 import type { FlowerFieldDiagnosticValues } from './flowerFieldDiagnosticState';
 import {

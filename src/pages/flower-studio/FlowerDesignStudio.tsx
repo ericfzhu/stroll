@@ -10,7 +10,7 @@ import {
 	ROSE_STEM_DURATION,
 	createDaisyGeometry,
 	createRoseGeometry,
-} from '../../features/flower-field/flowerGeometry';
+} from '../../field/flowerGeometry';
 import PopulationStudy from './PopulationStudy';
 import './FlowerDesignStudio.css';
 

@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import FlowerFieldLoading from '../features/flower-field/FlowerFieldLoading';
-import FlowerFieldScene from '../features/flower-field/infinite-terrain/FlowerFieldScene';
-import type { WeatherData } from '../features/weather/weatherTypes';
+import FlowerFieldLoading from '../field/FlowerFieldLoading';
+import FlowerFieldScene from '../field/FlowerFieldScene';
+import type { WeatherData } from '../weather/weatherTypes';
 import './Demo.css';
 
 const MOCK_DAY_START = Date.UTC(2026, 0, 1) / 1000;

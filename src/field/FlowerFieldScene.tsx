@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import '../FlowerField.css';
+import './FlowerField.css';
 import ChunkDebugOutline from './ChunkDebugOutline';
 import FlowerPopulation from './FlowerPopulation';
 import {
@@ -25,7 +25,7 @@ import {
 } from './flowerFieldDiagnosticState';
 import { useInfiniteGrassMaterial, useInfiniteTerrainMaterial } from './fieldMaterials';
 import { CHUNK_SIZE, FIELD_CURVATURE_RADIUS, FIELD_CURVATURE_START, terrainHeight } from './worldMath';
-import type { WeatherData } from '../../weather/weatherTypes';
+import type { WeatherData } from '../weather/weatherTypes';
 import { createFlowerFieldAtmosphere } from './weatherAtmosphere';
 
 type CloudRendering = 'sheet' | 'stylized';
@@ -600,7 +600,7 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 	);
 	const atmosphericWindSpeed = weather?.windSpeed ?? windSpeed;
 	const atmosphericWindDirection = weather ? THREE.MathUtils.degToRad(weather.windDirection) : windDirection;
-	const loadedNoiseTexture = useLoader(THREE.TextureLoader, '/assets/flower-field/infinite-terrain/noiseTexture.png');
+	const loadedNoiseTexture = useLoader(THREE.TextureLoader, '/assets/terrain/noiseTexture.png');
 	const noiseTexture = useMemo(() => {
 		const texture = loadedNoiseTexture.clone();
 		texture.wrapS = THREE.RepeatWrapping;

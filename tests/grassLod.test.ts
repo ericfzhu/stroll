@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { grassDensityForDistance } from '../src/features/flower-field/infinite-terrain/grassLod';
+import { grassDensityForDistance } from '../src/field/grassLod';
 
 describe('grassDensityForDistance', () => {
 	it('keeps the established density plateaus', () => {

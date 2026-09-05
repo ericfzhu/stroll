@@ -4,6 +4,17 @@ An interactive procedural flower meadow built with React, Three.js, and React Th
 
 - `/` is the presentation version of **A Stroll Through the Meadow**. It uses current Sydney weather from OpenWeather.
 - `/demo` exposes the camera, weather, lighting, wind, chunk, and performance controls.
+- `/flower-studio` contains the flower design and population studies.
+
+## File structure
+
+- `src/pages/` — home and demo pages, with the flower studio in `flower-studio/`.
+- `src/field/` — shared meadow scene, terrain, flowers, clouds, lighting, and diagnostics.
+- `src/field/shaders/` — grass, terrain, and flower shaders, named by material and stage.
+- `src/weather/` — weather fetching and data types.
+- `public/assets/terrain/` — terrain noise texture and its original license.
+- `worker/` — weather API and static asset serving.
+- `tests/` — rendering calculations and weather atmosphere tests.
 
 ## Local development
 
@@ -40,4 +51,4 @@ yarn deploy
 
 ## Attribution
 
-The procedural terrain began from Misha Kiiatkin's MIT-licensed infinite-terrain work. Its license is preserved at `public/assets/flower-field/infinite-terrain/LICENSE.txt`.
+The procedural terrain began from Misha Kiiatkin's MIT-licensed infinite-terrain work. Its license is preserved at `public/assets/terrain/LICENSE.txt`.

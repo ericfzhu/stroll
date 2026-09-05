@@ -1,7 +1,7 @@
 import { Canvas, useThree } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { createDaisyGeometry, type DaisyVariantId } from '../../features/flower-field/flowerGeometry';
+import { createDaisyGeometry, type DaisyVariantId } from '../../field/flowerGeometry';
 
 type PopulationVariant = Extract<DaisyVariantId, 'oxeye' | 'meadow' | 'cupped'>;
 

@@ -1,4 +1,4 @@
-import type { RoseVariantId } from '../flowerGeometry';
+import type { RoseVariantId } from './flowerGeometry';
 
 export type PlantableRoseVariant = Extract<RoseVariantId, 'wild' | 'semi-double' | 'cupped'>;
 

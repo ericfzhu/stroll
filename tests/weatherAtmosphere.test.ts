@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { Color } from 'three';
 import {
 	createFlowerFieldAtmosphere,
 	weatherStateFromCode,
-} from '../src/features/flower-field/infinite-terrain/weatherAtmosphere';
-import type { WeatherData } from '../src/features/weather/weatherTypes';
+} from '../src/field/weatherAtmosphere';
+import type { WeatherData } from '../src/weather/weatherTypes';
 
 function weather(overrides: Partial<WeatherData> = {}): WeatherData {
 	return {
@@ -134,6 +135,31 @@ describe('flower field weather atmosphere', () => {
 		expect(defaultSky.horizonColor).toBe('#d8edf1');
 		expect(adjustedSky.zenithColor).not.toBe(defaultSky.zenithColor);
 		expect(adjustedSky.horizonColor).not.toBe(defaultSky.horizonColor);
+	});
+
+	it('keeps a dark blue sky and its horizon cool instead of shifting them yellow', () => {
+		const atmosphere = createFlowerFieldAtmosphere(weather(), {
+			fallbackSkyColor: '#273a45',
+			baseSunStrength: 0.2,
+			now: 30_000,
+		});
+		const horizon = new Color(atmosphere.horizonColor);
+		expect(atmosphere.zenithColor).toBe('#273a45');
+		expect(horizon.b).toBeGreaterThan(horizon.r);
+		expect(horizon.g).toBeGreaterThan(horizon.r);
+		expect(horizon.b).toBeGreaterThan(new Color(atmosphere.zenithColor).b);
+		expect(atmosphere.fogColor).toBe(atmosphere.horizonColor);
+	});
+
+	it.each(['#000000', '#808080', '#ffffff'])('keeps a neutral sky %s neutral at the horizon', (skyColor) => {
+		const atmosphere = createFlowerFieldAtmosphere(weather(), {
+			fallbackSkyColor: skyColor,
+			baseSunStrength: 0.2,
+			now: 30_000,
+		});
+		const horizon = new Color(atmosphere.horizonColor);
+		expect(horizon.r).toBeCloseTo(horizon.g, 5);
+		expect(horizon.g).toBeCloseTo(horizon.b, 5);
 	});
 
 	it('adds precipitation only for rainy weather states', () => {

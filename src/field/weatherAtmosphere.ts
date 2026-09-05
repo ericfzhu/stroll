@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { WeatherData } from '../../weather/weatherTypes';
+import type { WeatherData } from '../weather/weatherTypes';
 
 export type FlowerFieldWeatherState =
 	| 'clear'
@@ -138,11 +138,18 @@ function weatherTint(baseColor: string, weatherColor: string, influence: number)
 }
 
 function applySkyColorShift(baseColor: string, skyColor: string) {
-	const shiftedColor = new THREE.Color(baseColor);
-	const selectedColor = new THREE.Color(skyColor);
-	shiftedColor.r = THREE.MathUtils.clamp(shiftedColor.r + selectedColor.r - DEFAULT_SKY_COLOR.r, 0, 1);
-	shiftedColor.g = THREE.MathUtils.clamp(shiftedColor.g + selectedColor.g - DEFAULT_SKY_COLOR.g, 0, 1);
-	shiftedColor.b = THREE.MathUtils.clamp(shiftedColor.b + selectedColor.b - DEFAULT_SKY_COLOR.b, 0, 1);
+	// Transfer the palette's lighter, less saturated horizon to the selected
+	// sky in display color space. Subtracting linear RGB channels clips dark
+	// blues unevenly and can turn their horizon (and fog) yellow.
+	const base = new THREE.Color(baseColor).getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace);
+	const selected = new THREE.Color(skyColor).getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace);
+	const reference = DEFAULT_SKY_COLOR.getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace);
+	const shiftedColor = new THREE.Color().setHSL(
+		base.h + selected.h - reference.h,
+		base.s * selected.s / reference.s,
+		base.l * selected.l / reference.l,
+		THREE.SRGBColorSpace,
+	);
 	return `#${shiftedColor.getHexString()}`;
 }
 
