@@ -30,9 +30,6 @@ function weather(overrides: Partial<WeatherData> = {}): WeatherData {
 		timezone: 36000,
 		sunrise: 10_000,
 		sunset: 50_000,
-		tempHigh: 24,
-		tempLow: 16,
-		hourly: [],
 		...overrides,
 	};
 }

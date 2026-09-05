@@ -42,9 +42,6 @@ function createMockWeather(conditionCode: number, cloudCover: number, visibility
 		timezone: 0,
 		sunrise: MOCK_SUNRISE,
 		sunset: MOCK_SUNSET,
-		tempHigh: 24,
-		tempLow: 16,
-		hourly: [],
 	};
 }
 

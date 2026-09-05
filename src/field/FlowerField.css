@@ -20,6 +20,12 @@
 	display: block;
 }
 
+/* Keep the canvas sized and rendering while assets and weather load together. */
+.flower-field-stage-preparing {
+	opacity: 0;
+	pointer-events: none;
+}
+
 .flower-field-location {
 	position: fixed;
 	bottom: max(clamp(24px, 4vw, 40px), env(safe-area-inset-bottom));

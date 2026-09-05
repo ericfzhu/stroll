@@ -1,10 +1,3 @@
-export interface HourlyForecast {
-	time: number;
-	temperature: number;
-	conditionCode: number;
-	precipitationChance: number;
-}
-
 export interface WeatherData {
 	temperature: number;
 	feelsLike: number;
@@ -22,7 +15,4 @@ export interface WeatherData {
 	timezone: number;
 	sunrise: number;
 	sunset: number;
-	tempHigh: number;
-	tempLow: number;
-	hourly: HourlyForecast[];
 }

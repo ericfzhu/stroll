@@ -32,31 +32,6 @@ interface OpenWeatherResponse {
 	timezone: number;
 }
 
-interface ForecastItem {
-	dt: number;
-	pop?: number;
-	main: {
-		temp: number;
-		temp_min: number;
-		temp_max: number;
-	};
-	weather: Array<{
-		id: number;
-		main: string;
-	}>;
-}
-
-interface OpenWeatherForecastResponse {
-	list: ForecastItem[];
-}
-
-interface HourlyForecast {
-	time: number;
-	temperature: number;
-	conditionCode: number;
-	precipitationChance: number;
-}
-
 interface WeatherResponse {
 	temperature: number;
 	feelsLike: number;
@@ -74,9 +49,6 @@ interface WeatherResponse {
 	timezone: number;
 	sunrise: number;
 	sunset: number;
-	tempHigh: number;
-	tempLow: number;
-	hourly: HourlyForecast[];
 }
 
 async function getWeatherResponse(env: Env) {
@@ -87,41 +59,13 @@ async function getWeatherResponse(env: Env) {
 
 		const apiKey = env.OPENWEATHERMAP_API_KEY;
 		const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${apiKey}`;
-		const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&units=metric&cnt=8&appid=${apiKey}`;
-
-		// Fetch both current weather and forecast in parallel
-		const [weatherResponse, forecastResponse] = await Promise.all([
-			fetch(weatherUrl),
-			fetch(forecastUrl),
-		]);
+		const weatherResponse = await fetch(weatherUrl);
 
 		if (!weatherResponse.ok) {
 			throw new Error(`OpenWeatherMap API error: ${weatherResponse.status}`);
 		}
 
 		const weatherData: OpenWeatherResponse = await weatherResponse.json();
-
-		// Process forecast data for hourly temps
-		let hourly: HourlyForecast[] = [];
-		let tempHigh = Math.round(weatherData.main.temp);
-		let tempLow = Math.round(weatherData.main.temp);
-
-		if (forecastResponse.ok) {
-			const forecastData: OpenWeatherForecastResponse = await forecastResponse.json();
-
-			// Get next 6 forecast entries (3-hour intervals)
-			hourly = forecastData.list.slice(0, 6).map((item) => ({
-				time: item.dt,
-				temperature: Math.round(item.main.temp),
-				conditionCode: item.weather[0]?.id || 800,
-				precipitationChance: Math.round((item.pop || 0) * 100),
-			}));
-
-			// Calculate high/low from today's forecasts
-			const allTemps = [weatherData.main.temp, ...forecastData.list.slice(0, 8).map((item) => item.main.temp)];
-			tempHigh = Math.round(Math.max(...allTemps));
-			tempLow = Math.round(Math.min(...allTemps));
-		}
 
 		const response: WeatherResponse = {
 			temperature: Math.round(weatherData.main.temp),
@@ -140,9 +84,6 @@ async function getWeatherResponse(env: Env) {
 			timezone: weatherData.timezone,
 			sunrise: weatherData.sys.sunrise,
 			sunset: weatherData.sys.sunset,
-			tempHigh,
-			tempLow,
-			hourly,
 		};
 
 		return new Response(JSON.stringify(response), {
