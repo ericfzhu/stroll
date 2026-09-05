@@ -878,12 +878,22 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 			<color args={[atmosphere.zenithColor]} attach="background" />
 			<fog attach="fog" args={[atmosphere.fogColor, atmosphere.fogNear, atmosphere.fogFar]} />
 			<DirectionalSun strength={atmosphere.sunStrength} direction={atmosphere.sunDirection} color={atmosphere.sunColor} />
-			<StylizedStars visibility={atmosphere.starVisibility} />
+			<group renderOrder={cloudRendering === 'stylized' ? -2 : 0}>
+				<StylizedStars visibility={atmosphere.starVisibility} />
+			</group>
 			{cloudRendering === 'sheet' && (
 				<CloudLayer cloudCover={weather?.cloudCover ?? 0} lightColor={atmosphere.sunColor} darkColor={atmosphere.horizonColor} />
 			)}
 			{cloudRendering === 'stylized' && (
-				<StylizedClouds cloudCover={weather?.cloudCover ?? 0} />
+				<StylizedClouds
+					cloudCover={weather?.cloudCover ?? 0}
+					sunDirection={atmosphere.sunDirection}
+					sunColor={atmosphere.sunColor}
+					skyColor={atmosphere.zenithColor}
+					horizonColor={atmosphere.horizonColor}
+					windSpeed={atmosphericWindSpeed}
+					windDirection={atmosphericWindDirection}
+				/>
 			)}
 			<Rainfall intensity={atmosphere.rainIntensity} windSpeed={atmosphericWindSpeed} windDirection={atmosphericWindDirection} />
 			<StormLightning enabled={atmosphere.state === 'thunderstorm'} />
