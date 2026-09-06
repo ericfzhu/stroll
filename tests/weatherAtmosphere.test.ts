@@ -252,3 +252,19 @@ it('uses Sydney daylight without weather', () => {
 	expect(atmosphere.starVisibility).toBe(0);
 	expect(atmosphere.sunStrength).toBe(0.2);
 });
+
+it('keeps moonless grass readable and dims rain and cloud highlights together at night', () => {
+	const options = { fallbackSkyColor: DEFAULT_SKY_COLOR, baseSunStrength: 0.2 };
+	const rain = weather({ conditionCode: 502, cloudCover: 100 });
+	const day = createFlowerFieldAtmosphere(rain, { ...options, now: 30_000 });
+	const night = createFlowerFieldAtmosphere(rain, { ...options, now: 60_000 });
+	const luminance = (hex: string) => {
+		const c = new Color(hex);
+		return c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
+	};
+	expect(luminance(night.ambientTint)).toBeGreaterThan(0.25);
+	expect(luminance(night.ambientTint)).toBeLessThan(0.55);
+	expect(luminance(night.rainColor)).toBeLessThan(luminance(day.rainColor) * 0.3);
+	expect(luminance(night.cloudLightColor)).toBeLessThan(luminance(day.cloudLightColor) * 0.2);
+	expect(night.rainIntensity).toBe(day.rainIntensity);
+});

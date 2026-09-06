@@ -11,3 +11,4 @@ dist
 /output/playwright/
 /playwright-report/
 /test-results/
+/.playwright-cli/

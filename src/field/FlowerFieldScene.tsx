@@ -357,7 +357,8 @@ const RAIN_WIDTH = 72;
 const RAIN_DEPTH = 72;
 const RAIN_HEIGHT = 28;
 
-function Rainfall({ intensity, windSpeed, windDirection }: {
+function Rainfall({ intensity, windSpeed, windDirection, color }: {
+	color: string;
 	intensity: number;
 	windSpeed: number;
 	windDirection: number;
@@ -390,11 +391,11 @@ function Rainfall({ intensity, windSpeed, windDirection }: {
 		return result;
 	}, []);
 	const material = useMemo(() => new THREE.LineBasicMaterial({
-		color: '#d7e4e8',
 		transparent: true,
 		opacity: 0.27,
 		depthWrite: false,
 	}), []);
+	useEffect(() => { material.color.set(color); }, [color, material]);
 	const driftX = Math.sin(windDirection) * windSpeed * 0.28;
 	const driftZ = Math.cos(windDirection) * windSpeed * 0.28;
 
@@ -825,20 +826,20 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 				<StylizedStars visibility={atmosphere.starVisibility} now={weatherNow} />
 			</group>
 			{cloudRendering === 'sheet' && (
-				<CloudLayer cloudCover={weather?.cloudCover ?? 0} lightColor={atmosphere.sunColor} darkColor={atmosphere.horizonColor} />
+				<CloudLayer cloudCover={weather?.cloudCover ?? 0} lightColor={atmosphere.cloudLightColor} darkColor={atmosphere.horizonColor} />
 			)}
 			{cloudRendering === 'stylized' && (
 				<StylizedClouds
 					cloudCover={weather?.cloudCover ?? 0}
 					sunDirection={atmosphere.sunDirection}
-					sunColor={atmosphere.sunColor}
+					lightColor={atmosphere.cloudLightColor}
 					skyColor={atmosphere.zenithColor}
 					horizonColor={atmosphere.horizonColor}
 					windSpeed={atmosphericWindSpeed}
 					windDirection={atmosphericWindDirection}
 				/>
 			)}
-			<Rainfall intensity={atmosphere.rainIntensity} windSpeed={atmosphericWindSpeed} windDirection={atmosphericWindDirection} />
+			<Rainfall color={atmosphere.rainColor} intensity={atmosphere.rainIntensity} windSpeed={atmosphericWindSpeed} windDirection={atmosphericWindDirection} />
 			<StormLightning enabled={atmosphere.state === 'thunderstorm'} />
 			{chunks.map((chunk) => (
 					<TerrainChunk

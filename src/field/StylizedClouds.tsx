@@ -6,7 +6,7 @@ import * as THREE from 'three';
 interface StylizedCloudsProps {
 	cloudCover: number;
 	sunDirection: THREE.Vector3;
-	sunColor: string;
+	lightColor: string;
 	skyColor: string;
 	horizonColor: string;
 	windSpeed: number;
@@ -101,7 +101,7 @@ const fragmentShader = `
 	}
 `;
 
-export default function StylizedClouds({ cloudCover, sunDirection, sunColor, skyColor, horizonColor, windSpeed, windDirection }: StylizedCloudsProps) {
+export default function StylizedClouds({ cloudCover, sunDirection, lightColor, skyColor, horizonColor, windSpeed, windDirection }: StylizedCloudsProps) {
 	const meshRef = useRef<THREE.Mesh>(null);
 	const densityTexture = useMemo(() => createDensityTexture(), []);
 	const material = useMemo(() => new THREE.ShaderMaterial({
@@ -128,13 +128,12 @@ export default function StylizedClouds({ cloudCover, sunDirection, sunColor, sky
 	}), [densityTexture]);
 
 	useEffect(() => {
-		const daylight = THREE.MathUtils.smoothstep(sunDirection.y, -0.12, 0.22);
 		material.uniforms.uCover.value = THREE.MathUtils.clamp(cloudCover / 100, 0, 1);
 		material.uniforms.uSunDirection.value.copy(sunDirection).normalize();
-		material.uniforms.uLight.value.set('#f3eee2').lerp(new THREE.Color(sunColor), 0.35).multiplyScalar(0.015 + daylight * 0.985);
+		material.uniforms.uLight.value.set(lightColor);
 		material.uniforms.uShade.value.set(horizonColor).lerp(new THREE.Color(skyColor), 0.3).multiplyScalar(0.65);
 		material.uniforms.uHorizon.value.set(horizonColor);
-	}, [cloudCover, horizonColor, material, skyColor, sunColor, sunDirection]);
+	}, [cloudCover, horizonColor, material, skyColor, lightColor, sunDirection]);
 
 	useEffect(() => () => {
 		material.dispose();

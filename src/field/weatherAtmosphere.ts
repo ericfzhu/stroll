@@ -34,6 +34,8 @@ export interface FlowerFieldAtmosphere {
 	moonDirection: THREE.Vector3;
 	moonVisibility: number;
 	rainIntensity: number;
+	rainColor: string;
+	cloudLightColor: string;
 }
 
 interface AtmosphereOptions {
@@ -67,8 +69,9 @@ const DAY_PALETTES: Record<FlowerFieldWeatherState, Palette> = {
 
 const NIGHT_ZENITH = new THREE.Color('#07111d');
 const NIGHT_HORIZON = new THREE.Color('#182630');
-const NIGHT_AMBIENT = new THREE.Color('#39465b');
-const MOONLIT_AMBIENT = new THREE.Color('#8195b0');
+// Artistic fill keeps grass and petals readable even with no visible moon.
+const NIGHT_AMBIENT = new THREE.Color('#98a8bb');
+const MOONLIT_AMBIENT = new THREE.Color('#bac9dc');
 const NIGHT_SUN = new THREE.Color('#8fa3b4');
 const DEFAULT_SKY_REFERENCE = new THREE.Color(DEFAULT_SKY_COLOR);
 
@@ -184,6 +187,13 @@ export function createFlowerFieldAtmosphere(
 	const zenithColor = weatherTint(nightBlend(dayZenith, NIGHT_ZENITH, daylight), '#8c8fbb', twilight * 0.16);
 	const horizonColor = weatherTint(nightBlend(dayHorizon, NIGHT_HORIZON, daylight), '#efb39d', twilight * 0.65);
 	const sunColor = weatherTint(nightBlend(palette.sun, NIGHT_SUN, daylight), '#ffc08b', twilight * 0.75);
+	// Clouds and rain are unlit materials: supply their reflected light explicitly,
+	// using the same twilight blend as the meadow rather than a separate sun-height test.
+	const nightCloudLight = new THREE.Color('#293b4d').lerp(new THREE.Color('#60758d'), moonlight);
+	const dayCloudLight = new THREE.Color('#f3eee2').lerp(new THREE.Color(sunColor), 0.35);
+	const cloudLightColor = nightBlend(`#${dayCloudLight.getHexString()}`, nightCloudLight, daylight);
+	const nightRain = new THREE.Color('#536b80').lerp(new THREE.Color('#8ca4b9'), moonlight);
+	const rainColor = nightBlend('#d7e4e8', nightRain, daylight);
 	const cloudTransmission = 1 - cloudCover / 100 * 0.68;
 	const starTransmission = 1 - cloudCover / 100 * 0.94;
 	const visibilityDistance = THREE.MathUtils.clamp((weather?.visibility ?? 10) * 9, 38, 90);
@@ -207,5 +217,7 @@ export function createFlowerFieldAtmosphere(
 		sunVisibility: smoothstep(-0.005, 0.015, sunDirection.y) * cloudTransmission,
 		starVisibility: (1 - daylight) * starTransmission * (1 - moonlight * 0.3),
 		rainIntensity: RAIN_INTENSITY[state],
+		rainColor,
+		cloudLightColor,
 	};
 }
