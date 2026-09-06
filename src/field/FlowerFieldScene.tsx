@@ -619,7 +619,8 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 	const pointerTerrainHit = useMemo(() => new THREE.Vector3(), []);
 	const pointerTerrainTarget = useMemo(() => new THREE.Vector2(), []);
 	const { camera, clock, gl, size } = useThree();
-	const baseGrassCount = size.width <= 760 ? 1500 : 2500;
+	// Fuller coverage around the camera; distance-based density/detail still apply.
+	const baseGrassCount = size.width <= 760 ? 2100 : 3500;
 	const flowerCandidateCount = size.width <= 760 ? 72 : 110;
 	const aspectRatio = size.width / Math.max(size.height, 1);
 	const chunks = useMemo(
