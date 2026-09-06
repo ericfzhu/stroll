@@ -15,9 +15,14 @@ export function startFaviconAnimation() {
 		image.src = frame;
 	}
 
+	const originalHref = favicon.href;
 	let frameIndex = 0;
-	window.setInterval(() => {
+	const interval = window.setInterval(() => {
 		favicon.href = frames[frameIndex];
 		frameIndex = (frameIndex + 1) % frames.length;
 	}, FAVICON_FRAME_DURATION_MS);
+	return () => {
+		window.clearInterval(interval);
+		favicon.href = originalHref;
+	};
 }

@@ -4,6 +4,7 @@ import { useReducedMotion } from 'motion/react';
 import FlowerFieldLoading from '../field/FlowerFieldLoading';
 import FlowerFieldScene from '../field/FlowerFieldScene';
 import useWeather from '../weather/useWeather';
+import { startFaviconAnimation } from '../favicon';
 
 export default function Stroll() {
 	const reducedMotion = Boolean(useReducedMotion());
@@ -24,6 +25,10 @@ export default function Stroll() {
 			cancelAnimationFrame(revealFrame);
 		};
 	}, [ready, weatherLoading]);
+
+	useEffect(() => {
+		if (revealed) return startFaviconAnimation();
+	}, [revealed]);
 
 	return (
 		<main className="flower-field-page" aria-label="A Stroll Through the Meadow">

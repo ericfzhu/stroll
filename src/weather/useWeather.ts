@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { WeatherData } from './weatherTypes';
-import { fetchWeather, WeatherTimeoutError } from './fetchWeather';
+import { fetchInitialWeather, fetchWeather, WeatherTimeoutError } from './fetchWeather';
 
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
@@ -12,10 +12,10 @@ export default function useWeather() {
 		let active = true;
 		let timedOut = false;
 		const controller = new AbortController();
-		const refresh = async () => {
+		const refresh = async (initial = false) => {
 			if (timedOut) return;
 			try {
-				const data = await fetchWeather(controller.signal);
+				const data = await (initial ? fetchInitialWeather : fetchWeather)(controller.signal);
 				if (active) setWeather(data);
 			} catch (error) {
 				if (error instanceof WeatherTimeoutError) timedOut = true;
@@ -25,7 +25,7 @@ export default function useWeather() {
 			}
 		};
 
-		void refresh();
+		void refresh(true);
 		const interval = window.setInterval(refresh, REFRESH_INTERVAL_MS);
 		return () => {
 			active = false;

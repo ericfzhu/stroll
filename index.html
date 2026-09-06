@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#77c4ee" />
     <meta name="description" content="An interactive procedural stroll through an infinite flower meadow." />
+    <script>
+      // Start before the application bundle; retain one settled result for React.
+      if (location.pathname === '/') {
+        window.__strollWeather = new Promise((resolve) => {
+          const controller = new AbortController();
+          let settled = false;
+          const finish = (result) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            resolve(result);
+          };
+          const timer = setTimeout(() => {
+            finish({ status: 'timeout' });
+            controller.abort();
+          }, 5000);
+          fetch('/api/weather', { signal: controller.signal })
+            .then(async (response) => {
+              if (!response.ok) throw new Error(`Weather API error: ${response.status}`);
+              const data = await response.json();
+              if ('error' in data) throw new Error(data.error);
+              finish({ status: 'success', data });
+            })
+            .catch((error) => finish({ status: 'error', message: String(error) }));
+        });
+      }
+    </script>
     <link rel="preload" href="/assets/terrain/noiseTexture.png" as="image" crossorigin="anonymous" />
     <link id="favicon" rel="icon" type="image/png" href="/favicon.png" />
     <title>Wandering through the meadows</title>

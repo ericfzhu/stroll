@@ -35,3 +35,23 @@ export async function fetchWeather(signal: AbortSignal): Promise<WeatherData> {
 		signal.removeEventListener('abort', onAbort);
 	}
 }
+
+// The HTML request belongs to the page, so StrictMode cleanup must not abort it.
+declare global {
+	interface Window {
+		__strollWeather?: Promise<
+			| { status: 'success'; data: WeatherData }
+			| { status: 'timeout' }
+			| { status: 'error'; message: string }
+		>;
+	}
+}
+
+export async function fetchInitialWeather(signal: AbortSignal): Promise<WeatherData> {
+	const early = typeof window !== 'undefined' ? window.__strollWeather : undefined;
+	if (!early) return fetchWeather(signal);
+	const result = await early;
+	if (result.status === 'timeout') throw new WeatherTimeoutError();
+	if (result.status === 'error') throw new Error(result.message);
+	return result.data;
+}
