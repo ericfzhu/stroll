@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useRef } from 'react';
+/* eslint-disable react/immutability -- Three.js uniforms are mutable GPU state, updated after React commits. */
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { STAR_ROTATION_AXIS, starRotationAt } from './starMotion';
 
 interface StylizedStarsProps {
 	visibility: number;
+	now?: number;
 }
 
-const STAR_COUNT = 1500;
+// Full sphere allows stars to rise and set as it turns. About half are above the horizon.
+const STAR_COUNT = 3000;
 const STAR_RADIUS = 145;
 
 const STAR_VERTEX_SHADER = `
@@ -21,7 +25,8 @@ const STAR_VERTEX_SHADER = `
 	void main() {
 		float pulse = sin(uTime * aTwinkleSpeed + aPhase);
 		vColor = color;
-		vOpacity = uVisibility * (0.82 + pulse * 0.12);
+		float altitude = (mat3(modelMatrix) * position).y / 145.0;
+		vOpacity = uVisibility * smoothstep(0.0, 0.12, altitude) * (0.82 + pulse * 0.12);
 		vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
 		gl_PointSize = aSize * (1.0 + pulse * 0.08);
 		gl_Position = projectionMatrix * viewPosition;
@@ -65,10 +70,7 @@ function createStarGeometry() {
 
 	for (let index = 0; index < STAR_COUNT; index += 1) {
 		const angle = random() * Math.PI * 2;
-		const heightSample = random();
-		const y = index % 2 === 0
-			? 0.02 + Math.pow(heightSample, 2.6) * 0.32
-			: 0.04 + heightSample * 0.94;
+		const y = random() * 2 - 1;
 		const horizontalRadius = Math.sqrt(1 - y * y) * STAR_RADIUS;
 		positions[index * 3] = Math.cos(angle) * horizontalRadius;
 		positions[index * 3 + 1] = y * STAR_RADIUS;
@@ -93,10 +95,10 @@ function createStarGeometry() {
 	return geometry;
 }
 
-export default function StylizedStars({ visibility }: StylizedStarsProps) {
+export default function StylizedStars({ visibility, now }: StylizedStarsProps) {
 	const pointsRef = useRef<THREE.Points>(null);
-	const geometry = useMemo(createStarGeometry, []);
-	const material = useMemo(() => new THREE.ShaderMaterial({
+	const geometry = useMemo(() => createStarGeometry(), []);
+	const [material] = useState(() => new THREE.ShaderMaterial({
 		uniforms: {
 			uTime: { value: 0 },
 			uVisibility: { value: 0 },
@@ -108,7 +110,7 @@ export default function StylizedStars({ visibility }: StylizedStarsProps) {
 		depthWrite: false,
 		vertexColors: true,
 		toneMapped: false,
-	}), []);
+	}));
 
 	useEffect(() => {
 		material.uniforms.uVisibility.value = visibility;
@@ -118,10 +120,16 @@ export default function StylizedStars({ visibility }: StylizedStarsProps) {
 		material.dispose();
 	}, [geometry, material]);
 
+	const previewClock = useRef({ now, startedAt: 0 });
 	useFrame(({ camera, clock }) => {
 		const points = pointsRef.current;
 		if (!points) return;
 		points.position.copy(camera.position);
+		if (previewClock.current.now !== now || previewClock.current.startedAt === 0) {
+			previewClock.current = { now, startedAt: clock.elapsedTime };
+		}
+		const seconds = now === undefined ? Date.now() / 1000 : now + clock.elapsedTime - previewClock.current.startedAt;
+		points.quaternion.setFromAxisAngle(STAR_ROTATION_AXIS, starRotationAt(seconds));
 		material.uniforms.uTime.value = clock.elapsedTime;
 	});
 

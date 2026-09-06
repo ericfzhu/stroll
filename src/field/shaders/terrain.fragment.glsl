@@ -21,6 +21,7 @@ uniform float uPixelSize;
 uniform int uDitherMode;
 uniform vec3 uSunDirection;
 uniform float uSunStrength;
+uniform vec3 uAmbientTint;
 
 // Varyings
 varying vec3 vWorldPosition;
@@ -126,7 +127,7 @@ void main() {
   float shadow = getShadowMask();
   float ambientLight = 0.42 + max(worldNormal.y, 0.0) * 0.14;
   float sunLight = max(dot(worldNormal, normalize(uSunDirection)), 0.0) * uSunStrength * shadow;
-  vec3 color = uBaseColor * (ambientLight + sunLight);
+  vec3 color = uBaseColor * (ambientLight * uAmbientTint + vec3(sunLight));
 
   gl_FragColor = vec4(color, 1.0);
 

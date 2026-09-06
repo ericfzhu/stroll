@@ -9,6 +9,7 @@ uniform vec3 uSunDirection;
 uniform vec3 uSunColor;
 uniform vec3 uSkyLightColor;
 uniform float uSunStrength;
+uniform vec3 uAmbientTint;
 
 varying vec3 vColor;
 varying vec3 vNormal;
@@ -58,7 +59,7 @@ void main() {
   vec3 ambientLighting = hemiLight(normal, vec3(0.12, 0.16, 0.07), uSkyLightColor);
   vec3 diffuseLighting = lambertLight(normal, normalize(uSunDirection), uSunColor);
   float shadow = getShadowMask();
-  vec3 lighting = diffuseLighting * uSunStrength * shadow + ambientLighting * 0.42;
+  vec3 lighting = diffuseLighting * uSunStrength * shadow + ambientLighting * 0.42 * uAmbientTint;
   vec3 color = vColor * lighting;
 
   if (vGrassMask < 0.99) {

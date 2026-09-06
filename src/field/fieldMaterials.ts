@@ -28,6 +28,7 @@ export function useInfiniteTerrainMaterial(
 	ditherPixelSize: number,
 	noiseStrength: number,
 	noiseScale: number,
+	ambientTint = '#ffffff',
 ) {
 	const [material] = useState(() => new THREE.ShaderMaterial({
 		uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.lights, {
@@ -47,6 +48,7 @@ export function useInfiniteTerrainMaterial(
 			uDitherMode: { value: ditherMode },
 			uSunDirection: { value: sunDirection.clone() },
 			uSunStrength: { value: sunStrength },
+			uAmbientTint: { value: new THREE.Color(ambientTint) },
 		}]),
 		vertexShader: terrainVertexShader,
 		fragmentShader: terrainFragmentShader,
@@ -61,7 +63,8 @@ export function useInfiniteTerrainMaterial(
 		material.uniforms.uDitherMode.value = ditherMode;
 		material.uniforms.uSunDirection.value.copy(sunDirection);
 		material.uniforms.uSunStrength.value = sunStrength;
-	}, [ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, sunDirection, sunStrength, material]);
+		material.uniforms.uAmbientTint.value.set(ambientTint);
+	}, [ambientTint, ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, sunDirection, sunStrength, material]);
 
 	useEffect(() => () => material.dispose(), [material]);
 	return material;
@@ -81,6 +84,7 @@ export function useInfiniteGrassMaterial(
 	ditherPixelSize: number,
 	noiseStrength: number,
 	noiseScale: number,
+	ambientTint = '#ffffff',
 ) {
 	const [material] = useState(() => new THREE.ShaderMaterial({
 		uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.lights, {
@@ -121,6 +125,7 @@ export function useInfiniteGrassMaterial(
 			uSunColor: { value: new THREE.Color(sunColor) },
 			uSkyLightColor: { value: new THREE.Color(skyColor).lerp(new THREE.Color('#ffffff'), 0.55) },
 			uSunStrength: { value: sunStrength },
+			uAmbientTint: { value: new THREE.Color(ambientTint) },
 		}]),
 		vertexShader: grassVertexShader,
 		fragmentShader: grassFragmentShader,
@@ -136,13 +141,14 @@ export function useInfiniteGrassMaterial(
 		material.uniforms.uDitherMode.value = ditherMode;
 		material.uniforms.uSunDirection.value.copy(sunDirection);
 		material.uniforms.uSunStrength.value = sunStrength;
+		material.uniforms.uAmbientTint.value.set(ambientTint);
 		material.uniforms.uSunColor.value.set(sunColor);
 		material.uniforms.uSkyLightColor.value.set(skyColor).lerp(new THREE.Color('#ffffff'), 0.55);
 		material.uniforms.uWindDirection.value = windDirection;
 		material.uniforms.uWindScale.value = windScale;
 		material.uniforms.uWindStrength.value = windStrength;
 		material.uniforms.uWindSpeed.value = windSpeed;
-	}, [ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength, material]);
+	}, [ambientTint, ditherMode, ditherPixelSize, noiseScale, noiseStrength, noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength, material]);
 
 	useEffect(() => () => material.dispose(), [material]);
 	return material;

@@ -66,16 +66,16 @@ describe('flower field weather atmosphere', () => {
 		const morning = createFlowerFieldAtmosphere(weather(), {
 			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
-			now: 20_000,
+			now: Date.parse('2026-06-21T23:00:00Z') / 1000,
 		});
 		const afternoon = createFlowerFieldAtmosphere(weather(), {
 			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
-			now: 40_000,
+			now: Date.parse('2026-06-22T05:00:00Z') / 1000,
 		});
 
-		expect(morning.sunDirection.x).toBeLessThan(0);
-		expect(afternoon.sunDirection.x).toBeGreaterThan(0);
+		expect(morning.sunDirection.x).toBeGreaterThan(0);
+		expect(afternoon.sunDirection.x).toBeLessThan(0);
 		expect(morning.sunDirection.y).toBeGreaterThan(0);
 	});
 
@@ -90,16 +90,17 @@ describe('flower field weather atmosphere', () => {
 			baseSunStrength: 0.2,
 			now: 30_000,
 		});
-		const night = createFlowerFieldAtmosphere(weather(), {
+		const night = calculateAtmosphere(weather(), {
 			fallbackSkyColor: DEFAULT_SKY_COLOR,
 			baseSunStrength: 0.2,
-			now: 0,
+			now: Date.parse('2026-01-03T13:00:00Z') / 1000,
 		});
 
 		expect(overcast.sunStrength).toBeLessThan(clear.sunStrength);
 		expect(night.sunStrength).toBe(0);
 		expect(night.sunVisibility).toBe(0);
-		expect(night.starVisibility).toBe(1);
+		expect(night.starVisibility).toBeGreaterThanOrEqual(0.7);
+		expect(night.starVisibility).toBeLessThanOrEqual(1);
 		expect(overcast.starVisibility).toBe(0);
 	});
 
@@ -239,7 +240,8 @@ it('uses Sydney night lighting without weather and ignores API solar timestamps'
 	const options = { fallbackSkyColor: DEFAULT_SKY_COLOR, baseSunStrength: 0.2, now: Date.parse('2026-06-21T13:00:00Z') / 1000 };
 	const fallback = calculateAtmosphere(null, options);
 	const live = calculateAtmosphere(weather({ sunrise: 0, sunset: Number.MAX_SAFE_INTEGER }), options);
-	expect(fallback.starVisibility).toBe(1);
+	expect(fallback.starVisibility).toBeGreaterThanOrEqual(0.7);
+	expect(fallback.starVisibility).toBeLessThanOrEqual(1);
 	expect(fallback.sunStrength).toBe(0);
 	expect(live.zenithColor).toBe(fallback.zenithColor);
 	expect(live.starVisibility).toBe(fallback.starVisibility);

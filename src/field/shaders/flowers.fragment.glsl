@@ -11,6 +11,7 @@ uniform vec3 uSunDirection;
 uniform vec3 uSunColor;
 uniform vec3 uSkyLightColor;
 uniform float uSunStrength;
+uniform vec3 uAmbientTint;
 
 float saturateValue(float value) {
   return clamp(value, 0.0, 1.0);
@@ -29,7 +30,7 @@ void main() {
   vec3 ambient = hemiLight(normal, vec3(0.18, 0.22, 0.1), uSkyLightColor);
   vec3 diffuse = lambertLight(normal, normalize(uSunDirection), uSunColor);
   float shadow = getShadowMask();
-  vec3 lighting = diffuse * uSunStrength * shadow + ambient * 0.42;
+  vec3 lighting = diffuse * uSunStrength * shadow + ambient * 0.42 * uAmbientTint;
 
   gl_FragColor = vec4(vColor * lighting, 1.0);
 

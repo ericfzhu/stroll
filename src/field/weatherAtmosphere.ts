@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { skyDirection, sydneySunDirection } from '../weather/sydneyCelestialPosition';
+import { sydneyMoon, moonlightAmount, type SydneyMoon } from '../weather/sydneyMoon';
 import { sydneySolarTimes, type SolarTimes } from '../weather/sydneySolarTime';
 import type { WeatherData } from '../weather/weatherTypes';
 
@@ -26,6 +28,11 @@ export interface FlowerFieldAtmosphere {
 	sunStrength: number;
 	sunVisibility: number;
 	starVisibility: number;
+	ambientTint: string;
+	moon: SydneyMoon;
+	moonlight: number;
+	moonDirection: THREE.Vector3;
+	moonVisibility: number;
 	rainIntensity: number;
 }
 
@@ -60,9 +67,11 @@ const DAY_PALETTES: Record<FlowerFieldWeatherState, Palette> = {
 
 const NIGHT_ZENITH = new THREE.Color('#07111d');
 const NIGHT_HORIZON = new THREE.Color('#182630');
+const NIGHT_AMBIENT = new THREE.Color('#39465b');
+const MOONLIT_AMBIENT = new THREE.Color('#8195b0');
 const NIGHT_SUN = new THREE.Color('#8fa3b4');
 const DEFAULT_SKY_REFERENCE = new THREE.Color(DEFAULT_SKY_COLOR);
-const DEFAULT_SUN_DIRECTION = new THREE.Vector3(-0.48, 0.78, -0.4).normalize();
+
 
 const WEATHER_COLOR_INFLUENCE: Record<FlowerFieldWeatherState, number> = {
 	clear: 0,
@@ -116,17 +125,6 @@ function daylightAt(now: number, sunrise: number, sunset: number) {
 	return Math.min(sunriseBlend, sunsetBlend);
 }
 
-function sunDirectionAt(now: number, sunrise: number, sunset: number) {
-	if (sunset <= sunrise) return DEFAULT_SUN_DIRECTION.clone();
-	const progress = THREE.MathUtils.clamp((now - sunrise) / (sunset - sunrise), 0, 1);
-	const altitude = Math.max(0.035, Math.sin(progress * Math.PI));
-	return new THREE.Vector3(
-		THREE.MathUtils.lerp(-0.85, 0.85, progress),
-		altitude,
-		-0.52,
-	).normalize();
-}
-
 function colorWithCloudCover(color: string, cloudCover: number, target: string) {
 	return `#${new THREE.Color(color)
 		// Scattered clouds leave blue gaps; only a nearly closed cloud deck
@@ -168,6 +166,10 @@ export function createFlowerFieldAtmosphere(
 	const palette = DAY_PALETTES[state];
 	const daylight = daylightAt(now, solarTimes.sunrise, solarTimes.sunset);
 	const cloudCover = THREE.MathUtils.clamp(weather?.cloudCover ?? 0, 0, 100);
+	const sunDirection = sydneySunDirection(now);
+	const moon = sydneyMoon(now);
+	const moonlight = moonlightAmount(moon, cloudCover, daylight);
+	const nightAmbient = NIGHT_AMBIENT.clone().lerp(MOONLIT_AMBIENT, moonlight);
 	const tintedZenith = weatherTint(fallbackSkyColor, palette.zenith, WEATHER_COLOR_INFLUENCE[state]);
 	const shiftedHorizon = applySkyColorShift(palette.horizon, fallbackSkyColor);
 	const tintedHorizon = weatherTint(shiftedHorizon, palette.horizon, WEATHER_COLOR_INFLUENCE[state]);
@@ -189,16 +191,21 @@ export function createFlowerFieldAtmosphere(
 
 	return {
 		state,
+		ambientTint: nightBlend('#ffffff', nightAmbient, daylight),
+		moon,
+		moonlight,
+		moonDirection: skyDirection(moon.altitude, moon.azimuth),
+		moonVisibility: smoothstep(-0.005, 0.015, moon.altitude) * (1 - cloudCover / 100 * 0.94),
 		zenithColor,
 		horizonColor,
 		fogColor: horizonColor,
 		fogNear: Math.max(18, fogFar * 0.42),
 		fogFar,
 		sunColor,
-		sunDirection: sunDirectionAt(now, solarTimes.sunrise, solarTimes.sunset),
+		sunDirection,
 		sunStrength: baseSunStrength * daylight * cloudTransmission,
-		sunVisibility: daylight * cloudTransmission,
-		starVisibility: (1 - daylight) * starTransmission,
+		sunVisibility: smoothstep(-0.005, 0.015, sunDirection.y) * cloudTransmission,
+		starVisibility: (1 - daylight) * starTransmission * (1 - moonlight * 0.3),
 		rainIntensity: RAIN_INTENSITY[state],
 	};
 }

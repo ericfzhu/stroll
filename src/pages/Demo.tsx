@@ -7,7 +7,8 @@ import FlowerFieldScene from '../field/FlowerFieldScene';
 import type { WeatherData } from '../weather/weatherTypes';
 import './Demo.css';
 
-const MOCK_DAY_START = Date.UTC(2026, 0, 1) / 1000;
+// Midnight in Sydney on 1 January 2026 (AEDT), so lunar positions match the displayed hour.
+const MOCK_DAY_START = Date.UTC(2025, 11, 31, 13) / 1000;
 const MOCK_SUNRISE = MOCK_DAY_START + 6 * 60 * 60;
 const MOCK_SUNSET = MOCK_DAY_START + 18 * 60 * 60;
 const WEATHER_OPTIONS = [
@@ -158,7 +159,7 @@ export default function FlowerFieldDemo() {
 						<span>Angle</span>
 						<input
 							type="range"
-							min="0"
+							min="-80"
 							max="45"
 							step="1"
 							value={cameraAngle}

@@ -34,6 +34,7 @@ interface FlowerPopulationProps {
 	skyColor: string;
 	sunColor: string;
 	sunStrength: number;
+	ambientTint: string;
 	windSpeed: number;
 	windStrength: number;
 	windDirection: number;
@@ -412,6 +413,7 @@ export default function FlowerPopulation({
 	skyColor,
 	sunColor,
 	sunStrength,
+	ambientTint,
 	windSpeed,
 	windStrength,
 	windDirection,
@@ -460,6 +462,7 @@ export default function FlowerPopulation({
 			uSunColor: { value: new THREE.Color(sunColor) },
 			uSkyLightColor: { value: new THREE.Color(skyColor).lerp(new THREE.Color('#ffffff'), 0.55) },
 			uSunStrength: { value: sunStrength * FLOWER_SUN_MULTIPLIER },
+			uAmbientTint: { value: new THREE.Color(ambientTint) },
 		}]),
 		vertexShader: flowerVertexShader,
 		fragmentShader: flowerFragmentShader,
@@ -471,13 +474,14 @@ export default function FlowerPopulation({
 		material.uniforms.uNoiseTexture.value = noiseTexture;
 		material.uniforms.uSunDirection.value.copy(sunDirection);
 		material.uniforms.uSunStrength.value = sunStrength * FLOWER_SUN_MULTIPLIER;
+		material.uniforms.uAmbientTint.value.set(ambientTint);
 		material.uniforms.uSunColor.value.set(sunColor);
 		material.uniforms.uSkyLightColor.value.set(skyColor).lerp(new THREE.Color('#ffffff'), 0.55);
 		material.uniforms.uWindDirection.value = windDirection;
 		material.uniforms.uWindScale.value = windScale;
 		material.uniforms.uWindStrength.value = windStrength;
 		material.uniforms.uWindSpeed.value = windSpeed;
-	}, [noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength, material]);
+	}, [ambientTint, noiseTexture, skyColor, sunColor, sunDirection, sunStrength, windDirection, windScale, windSpeed, windStrength, material]);
 	const tileCache = useMemo(() => new FlowerTileCache(candidatesPerChunk), [candidatesPerChunk]);
 	const population = useMemo(() => {
 		// Diagnostics intentionally sample the wall time of this deterministic rebuild.

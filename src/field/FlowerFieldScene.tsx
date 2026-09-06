@@ -132,12 +132,14 @@ function DirectionalSun({ strength, direction, color }: { strength: number; dire
 	);
 }
 
-function BackgroundSphere({ zenithColor, horizonColor, sunColor, sunDirection, sunVisibility }: {
+function BackgroundSphere({ zenithColor, horizonColor, sunColor, sunDirection, sunVisibility, moonDirection, moonVisibility }: {
 	zenithColor: string;
 	horizonColor: string;
 	sunColor: string;
 	sunDirection: THREE.Vector3;
 	sunVisibility: number;
+	moonDirection: THREE.Vector3;
+	moonVisibility: number;
 }) {
 	const meshRef = useRef<THREE.Mesh>(null);
 	const [material] = useState(() => new THREE.ShaderMaterial({
@@ -147,6 +149,8 @@ function BackgroundSphere({ zenithColor, horizonColor, sunColor, sunDirection, s
 			uSunColor: { value: new THREE.Color(sunColor) },
 			uSunDirection: { value: sunDirection.clone() },
 			uSunVisibility: { value: sunVisibility },
+			uMoonDirection: { value: moonDirection.clone() },
+			uMoonVisibility: { value: moonVisibility },
 		},
 		vertexShader: `
 			varying vec3 vDirection;
@@ -161,15 +165,48 @@ function BackgroundSphere({ zenithColor, horizonColor, sunColor, sunDirection, s
 			uniform vec3 uSunColor;
 			uniform vec3 uSunDirection;
 			uniform float uSunVisibility;
+			uniform vec3 uMoonDirection;
+			uniform float uMoonVisibility;
 			varying vec3 vDirection;
 			void main() {
 				vec3 direction = normalize(vDirection);
 				float skyGradient = smoothstep(-0.03, 0.16, direction.y);
 				vec3 color = mix(uHorizonColor, uZenithColor, skyGradient);
-				float sunAlignment = max(dot(direction, normalize(uSunDirection)), 0.0);
-				float sunDisc = pow(sunAlignment, 850.0);
-				float sunGlow = pow(sunAlignment, 24.0);
-				color += uSunColor * (sunDisc * 0.9 + sunGlow * 0.11) * uSunVisibility;
+				float sunDistance = length(direction - uSunDirection);
+				float sunAA = max(fwidth(sunDistance), 0.0001);
+				float sunDisc = 1.0 - smoothstep(0.00465 - sunAA, 0.00465 + sunAA, sunDistance);
+				// Analytic glare: preserve the disc's angular size while giving its
+				// brightness a concentrated shoulder and a soft outer falloff.
+				float sunHalo = exp(-pow(sunDistance / 0.012, 2.0));
+				float sunGlare = exp(-sunDistance / 0.045);
+				vec3 sunWhite = mix(uSunColor, vec3(1.0), 0.85);
+				color += (sunWhite * (sunDisc * 12.0 + sunHalo * 1.4)
+					+ uSunColor * sunGlare * 0.28) * uSunVisibility;
+				// A small sphere lit from the true sun direction gives the lunar phase
+				// and its orientation, including the southern-hemisphere perspective.
+				vec3 moonRight = normalize(cross(uMoonDirection, vec3(0.0, 1.0, 0.0)));
+				vec3 moonUp = cross(moonRight, uMoonDirection);
+				vec2 moonUV = vec2(dot(direction, moonRight), dot(direction, moonUp)) / 0.00465;
+				float moonRadius = length(moonUV);
+				float moonAA = max(fwidth(moonRadius), 0.001);
+				float moonMask = (1.0 - smoothstep(1.0 - moonAA, 1.0 + moonAA, moonRadius))
+					* step(0.0, dot(direction, uMoonDirection)) * uMoonVisibility;
+				vec3 moonNormal = moonRight * moonUV.x + moonUp * moonUV.y
+					- uMoonDirection * sqrt(max(0.0, 1.0 - dot(moonUV, moonUV)));
+				float moonLight = smoothstep(-0.04, 0.04, dot(moonNormal, uSunDirection));
+				// Broad, low-contrast maria remain legible at the small disc size.
+				// These are procedural markings, not a map of the lunar surface.
+				float maria = exp(-dot((moonUV - vec2(-0.25, 0.22)) / vec2(0.42, 0.52),
+					(moonUV - vec2(-0.25, 0.22)) / vec2(0.42, 0.52)))
+					+ 0.6 * exp(-dot((moonUV - vec2(0.32, 0.35)) / vec2(0.28, 0.3),
+					(moonUV - vec2(0.32, 0.35)) / vec2(0.28, 0.3)));
+				float lunarAlbedo = 1.0 - 0.28 * clamp(maria, 0.0, 1.0);
+				vec3 moonSurface = vec3(1.85, 1.83, 1.76) * lunarAlbedo;
+				float illuminatedFraction = clamp((1.0 - dot(uMoonDirection, uSunDirection)) * 0.5, 0.0, 1.0);
+				float moonDistance = length(direction - uMoonDirection);
+				float moonHalo = exp(-moonDistance / 0.008) * pow(illuminatedFraction, 2.0);
+				color += vec3(0.8, 0.86, 1.0) * moonHalo * 0.035 * uMoonVisibility;
+				color = mix(color, moonSurface, moonMask * moonLight);
 				gl_FragColor = vec4(color, 1.0);
 				#include <tonemapping_fragment>
 				#include <colorspace_fragment>
@@ -185,7 +222,9 @@ function BackgroundSphere({ zenithColor, horizonColor, sunColor, sunDirection, s
 		material.uniforms.uSunDirection.value.copy(sunDirection);
 		// eslint-disable-next-line react/immutability -- Mutable shader uniform.
 		material.uniforms.uSunVisibility.value = sunVisibility;
-	}, [horizonColor, material, sunColor, sunDirection, sunVisibility, zenithColor]);
+		material.uniforms.uMoonDirection.value.copy(moonDirection);
+		material.uniforms.uMoonVisibility.value = moonVisibility;
+	}, [horizonColor, material, moonDirection, moonVisibility, sunColor, sunDirection, sunVisibility, zenithColor]);
 	useFrame(({ camera }) => {
 		meshRef.current?.position.copy(camera.position);
 	});
@@ -513,7 +552,7 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 		texture.needsUpdate = true;
 		return texture;
 	}, [loadedNoiseTexture]);
-	const terrainMaterial = useInfiniteTerrainMaterial(noiseTexture, atmosphere.sunDirection, atmosphere.sunStrength, ditherMode, ditherPixelSize, noiseStrength, noiseScale);
+	const terrainMaterial = useInfiniteTerrainMaterial(noiseTexture, atmosphere.sunDirection, atmosphere.sunStrength, ditherMode, ditherPixelSize, noiseStrength, noiseScale, atmosphere.ambientTint);
 	const grassMaterial = useInfiniteGrassMaterial(
 		noiseTexture,
 		atmosphere.sunDirection,
@@ -528,6 +567,7 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 		ditherPixelSize,
 		noiseStrength,
 		noiseScale,
+		atmosphere.ambientTint,
 	);
 	const chunkOutlineMaterial = useMemo(() => new THREE.ShaderMaterial({
 		uniforms: {
@@ -782,7 +822,7 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 			<fog attach="fog" args={[atmosphere.fogColor, atmosphere.fogNear, atmosphere.fogFar]} />
 			<DirectionalSun strength={atmosphere.sunStrength} direction={atmosphere.sunDirection} color={atmosphere.sunColor} />
 			<group renderOrder={cloudRendering === 'stylized' ? -2 : 0}>
-				<StylizedStars visibility={atmosphere.starVisibility} />
+				<StylizedStars visibility={atmosphere.starVisibility} now={weatherNow} />
 			</group>
 			{cloudRendering === 'sheet' && (
 				<CloudLayer cloudCover={weather?.cloudCover ?? 0} lightColor={atmosphere.sunColor} darkColor={atmosphere.horizonColor} />
@@ -826,6 +866,7 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 				skyColor={atmosphere.zenithColor}
 				sunColor={atmosphere.sunColor}
 				sunStrength={atmosphere.sunStrength}
+				ambientTint={atmosphere.ambientTint}
 				windSpeed={windSpeed}
 				windStrength={windStrength}
 				windDirection={windDirection}
@@ -840,6 +881,8 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 				sunColor={atmosphere.sunColor}
 				sunDirection={atmosphere.sunDirection}
 				sunVisibility={atmosphere.sunVisibility}
+				moonDirection={atmosphere.moonDirection}
+				moonVisibility={atmosphere.moonVisibility}
 			/>
 		</>
 	);
