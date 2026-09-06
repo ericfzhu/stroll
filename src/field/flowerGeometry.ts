@@ -75,6 +75,7 @@ const ROSE_INNER = new THREE.Color('#92243f');
 const ROSE_DEEP = new THREE.Color('#6f172f');
 
 interface Builder {
+	distant?: boolean;
 	positions: number[];
 	colors: number[];
 	indices: number[];
@@ -92,10 +93,11 @@ function quad(builder: Builder, a: number, b: number, c: number, d: number) {
 }
 
 function addStem(builder: Builder) {
+	const segments = builder.distant ? 2 : 6;
 	for (let face = 0; face < 2; face += 1) {
 		const rows: Array<[number, number]> = [];
-		for (let segment = 0; segment <= 6; segment += 1) {
-			const progress = segment / 6;
+		for (let segment = 0; segment <= segments; segment += 1) {
+			const progress = segment / segments;
 			const y = progress * STEM_HEIGHT;
 			const width = THREE.MathUtils.lerp(0.024, 0.012, progress);
 			const bend = Math.sin(progress * Math.PI * 0.8) * 0.025;
@@ -153,7 +155,7 @@ function addRay(builder: Builder, options: RayOptions) {
 	const tangentX = Math.cos(angle);
 	const tangentZ = -Math.sin(angle);
 	const rows: Array<[number, number]> = [];
-	const segments = 4;
+	const segments = builder.distant ? 2 : 4;
 
 	for (let segment = 0; segment <= segments; segment += 1) {
 		const progress = segment / segments;
@@ -162,7 +164,7 @@ function addRay(builder: Builder, options: RayOptions) {
 		const width = halfWidth * widthScale;
 		const centerY = baseY + Math.sin(progress * Math.PI) * arch + progress * droop;
 		const rolledEdge = Math.sin(progress * Math.PI) * roll;
-		const shade = segment >= 3 ? PETAL_WARM : color;
+		const shade = progress >= 0.75 ? PETAL_WARM : color;
 		rows.push([
 			vertex(builder, [radialX * radius - tangentX * width, centerY - rolledEdge, radialZ * radius - tangentZ * width], shade),
 			vertex(builder, [radialX * radius + tangentX * width, centerY + rolledEdge, radialZ * radius + tangentZ * width], shade),
@@ -177,6 +179,7 @@ function addRay(builder: Builder, options: RayOptions) {
 }
 
 function addDiscDome(builder: Builder, radius: number, height: number, segments = 20, rings = 3) {
+	if (builder.distant) { segments = Math.ceil(segments / 2); rings = 2; }
 	const ringIds: number[][] = [];
 	for (let ring = 0; ring <= rings; ring += 1) {
 		const progress = ring / rings;
@@ -447,8 +450,8 @@ function addRoseHead(builder: Builder, variant: RoseVariantId) {
 	addRoseRing(builder, { count: 10, baseRadius: 0.012, shoulderRadius: 0.09, tipRadius: 0.025, height: 0.4, halfWidth: 0.036, baseY: HEAD_Y + 0.01, crossCurve: 0.022, color: ROSE_DEEP, rotation: 0.7 });
 }
 
-export function createDaisyGeometry(variant: DaisyVariantId, phenotypeSeed = 0) {
-	const builder: Builder = { positions: [], colors: [], indices: [] };
+export function createDaisyGeometry(variant: DaisyVariantId, phenotypeSeed = 0, distant = false) {
+	const builder: Builder = { positions: [], colors: [], indices: [], distant };
 	addStem(builder);
 	addLeaf(builder, 1, 0.37, 1);
 	addLeaf(builder, -1, 0.66, -1);

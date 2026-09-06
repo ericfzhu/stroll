@@ -1,6 +1,7 @@
 /* eslint-disable react/immutability -- Three.js uniforms are mutable GPU state, updated after React commits. */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { updateFlowerDetails } from './flowerLod';
 import { createNoise2D } from 'simplex-noise';
 import * as THREE from 'three';
 import {
@@ -284,50 +285,78 @@ class FlowerTileCache {
 	}
 }
 
-function FlowerInstances({ group, geometry, material, population, matrixTimingRef, diagnosticsRef }: {
+function FlowerInstances({ group, geometry, distantGeometry, material, population, matrixTimingRef, diagnosticsRef, batchCountsRef }: {
 	group: FlowerGroup;
 	geometry: THREE.BufferGeometry;
+	distantGeometry: THREE.BufferGeometry;
 	material: THREE.ShaderMaterial;
 	population: FlowerGroup[];
 	matrixTimingRef: RefObject<MatrixBuildTiming>;
 	diagnosticsRef: RefObject<FlowerFieldDiagnosticValues>;
+	batchCountsRef: RefObject<Map<string, number>>;
 }) {
-	const instanceRef = useRef<THREE.InstancedMesh>(null);
+	const nearRef = useRef<THREE.InstancedMesh>(null);
+	const farRef = useRef<THREE.InstancedMesh>(null);
+	const { camera } = useThree();
+	const details = useMemo(() => new Uint8Array(group.matrices.length), [group.matrices]);
+	const lastCamera = useRef({ x: NaN, z: NaN, elapsed: 0 });
+	const updateInstances = useCallback((force: boolean) => {
+		const near = nearRef.current;
+		const far = farRef.current;
+		if (!near || !far) return;
+		const changed = updateFlowerDetails(group.matrices, details, camera.position.x, camera.position.z);
+		if (!force && !changed) return;
+		near.count = 0;
+		far.count = 0;
+		for (let index = 0; index < group.matrices.length; index += 1) {
+			const mesh = details[index] ? far : near;
+			mesh.setMatrixAt(mesh.count++, group.matrices[index]);
+		}
+		near.instanceMatrix.needsUpdate = true;
+		far.instanceMatrix.needsUpdate = true;
+		batchCountsRef.current.set(group.key, Number(near.count > 0) + Number(far.count > 0));
+	}, [batchCountsRef, camera, details, group]);
 
 	useLayoutEffect(() => {
-		const mesh = instanceRef.current;
-		if (!mesh) return;
 		const startedAt = performance.now();
-		mesh.count = group.matrices.length;
-		geometry.setAttribute('aBloomStart', new THREE.InstancedBufferAttribute(
-			new Float32Array(group.matrices.length).fill(-ROSE_BLOOM_DURATION),
-			1,
-		));
-		for (let index = 0; index < group.matrices.length; index += 1) mesh.setMatrixAt(index, group.matrices[index]);
-		mesh.instanceMatrix.needsUpdate = true;
-		const matrixTiming = matrixTimingRef.current;
-		if (matrixTiming.population !== population) {
-			matrixTiming.population = population;
-			matrixTiming.totalMs = 0;
-			matrixTiming.completedBatches = 0;
-			matrixTiming.expectedBatches = population.length;
+		const batchCounts = batchCountsRef.current;
+		for (const mesh of [nearRef.current, farRef.current]) {
+			if (!mesh) continue;
+			mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+			mesh.geometry.setAttribute('aBloomStart', new THREE.InstancedBufferAttribute(
+				new Float32Array(group.matrices.length).fill(-ROSE_BLOOM_DURATION), 1,
+			));
 		}
-		matrixTiming.totalMs += performance.now() - startedAt;
-		matrixTiming.completedBatches += 1;
-		if (matrixTiming.completedBatches === matrixTiming.expectedBatches) {
-			diagnosticsRef.current.flowerMatrixMs = matrixTiming.totalMs;
+		updateInstances(true);
+		const timing = matrixTimingRef.current;
+		if (timing.population !== population) {
+			timing.population = population;
+			timing.totalMs = 0;
+			timing.completedBatches = 0;
+			timing.expectedBatches = population.length;
 		}
-	}, [diagnosticsRef, geometry, group.matrices, matrixTimingRef, population]);
+		timing.totalMs += performance.now() - startedAt;
+		timing.completedBatches += 1;
+		if (timing.completedBatches === timing.expectedBatches) diagnosticsRef.current.flowerMatrixMs = timing.totalMs;
+		return () => { batchCounts.delete(group.key); };
+	}, [batchCountsRef, diagnosticsRef, geometry, distantGeometry, group, matrixTimingRef, population, updateInstances]);
+
+	useFrame((_, delta) => {
+		const last = lastCamera.current;
+		last.elapsed += delta;
+		if (last.elapsed < 0.2) return;
+		last.elapsed = 0;
+		if (last.x === camera.position.x && last.z === camera.position.z) return;
+		last.x = camera.position.x;
+		last.z = camera.position.z;
+		updateInstances(false);
+	});
 
 	return (
-		<instancedMesh
-			ref={instanceRef}
-			args={[geometry, material, group.matrices.length]}
-			frustumCulled={false}
-			castShadow
-			receiveShadow
-			dispose={null}
-		/>
+		<>
+			<instancedMesh ref={nearRef} args={[geometry, material, group.matrices.length]} frustumCulled={false} castShadow receiveShadow dispose={null} />
+			<instancedMesh ref={farRef} args={[distantGeometry, material, group.matrices.length]} frustumCulled={false} castShadow receiveShadow dispose={null} />
+		</>
 	);
 }
 
@@ -395,9 +424,11 @@ export default function FlowerPopulation({
 		const generated = new Map<string, THREE.BufferGeometry>();
 		for (const variant of ['oxeye', 'meadow', 'cupped'] as const) {
 			for (let phenotype = 1; phenotype <= 4; phenotype += 1) {
-				const geometry = createDaisyGeometry(variant, phenotype);
-				geometry.setAttribute('aBudPosition', geometry.getAttribute('position').clone());
-				generated.set(`${variant}-${phenotype}`, geometry);
+				for (const distant of [false, true]) {
+					const geometry = createDaisyGeometry(variant, phenotype, distant);
+					geometry.setAttribute('aBudPosition', geometry.getAttribute('position').clone());
+					generated.set(`${variant}-${phenotype}${distant ? '-far' : ''}`, geometry);
+				}
 			}
 		}
 		for (const variant of PLANTABLE_ROSE_VARIANTS) {
@@ -461,6 +492,7 @@ export default function FlowerPopulation({
 	},
 		[chunks, tileCache],
 	);
+	const batchCountsRef = useRef(new Map<string, number>());
 	const matrixTimingRef = useRef<MatrixBuildTiming>({
 		population: null,
 		totalMs: 0,
@@ -471,7 +503,7 @@ export default function FlowerPopulation({
 	useLayoutEffect(() => {
 		const diagnostics = diagnosticsRef.current;
 		diagnostics.flowerInstances = population.flowerInstances;
-		diagnostics.flowerBatches = population.groups.length;
+
 		diagnostics.flowerTiles = population.flowerTiles;
 		diagnostics.flowerChunksGenerated = population.flowerChunksGenerated;
 		diagnostics.flowerGenerationMs = population.generationMs;
@@ -479,6 +511,9 @@ export default function FlowerPopulation({
 	}, [diagnosticsRef, population]);
 
 	useFrame(({ camera, clock }) => {
+		let batches = 0;
+		for (const count of batchCountsRef.current.values()) batches += count;
+		diagnosticsRef.current.flowerBatches = batches;
 		const cursorWind = cursorWindRef.current;
 		// All phenotype batches share one material, clock and wind field.
 		// eslint-disable-next-line react-hooks/immutability
@@ -500,11 +535,14 @@ export default function FlowerPopulation({
 		<>
 			{population.groups.map((group) => {
 				const geometry = geometries.get(group.key);
-				if (!geometry) return null;
+				const distantGeometry = geometries.get(`${group.key}-far`);
+				if (!geometry || !distantGeometry) return null;
 				return (
 					<FlowerInstances
 						key={group.key}
 						group={group}
+						distantGeometry={distantGeometry}
+						batchCountsRef={batchCountsRef}
 						geometry={geometry}
 						material={material}
 						population={population.groups}
