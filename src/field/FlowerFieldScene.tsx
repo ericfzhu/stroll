@@ -19,7 +19,7 @@ import {
 	type FlowerFieldDiagnosticValues,
 } from './flowerFieldDiagnosticState';
 import { useInfiniteGrassMaterial, useInfiniteTerrainMaterial } from './fieldMaterials';
-import { CHUNK_SIZE, FIELD_CURVATURE_RADIUS, FIELD_CURVATURE_START, terrainHeight } from './worldMath';
+import { CHUNK_SIZE, FIELD_CURVATURE_RADIUS, FIELD_CURVATURE_START, mulberry32, terrainHeight } from './worldMath';
 import type { WeatherData } from '../weather/weatherTypes';
 import { createFlowerFieldAtmosphere } from './weatherAtmosphere';
 import { needsPostprocessing } from './renderFrame';
@@ -354,7 +354,7 @@ function CloudLayer({ cloudCover, lightColor, darkColor }: {
 	);
 }
 
-const MAX_RAIN_DROPS = 1500;
+const MAX_RAIN_DROPS = 3600;
 const RAIN_WIDTH = 72;
 const RAIN_DEPTH = 72;
 const RAIN_HEIGHT = 28;
@@ -378,7 +378,7 @@ function Rainfall({ intensity, windSpeed, windDirection, color }: {
 			const x = (random() - 0.5) * RAIN_WIDTH;
 			const y = (random() - 0.25) * RAIN_HEIGHT;
 			const z = -random() * RAIN_DEPTH;
-			const length = 0.38 + random() * 0.5;
+			const length = 0.6 + random() * 0.7;
 			positions[offset] = x;
 			positions[offset + 1] = y;
 			positions[offset + 2] = z;
@@ -397,56 +397,97 @@ function Rainfall({ intensity, windSpeed, windDirection, color }: {
 		opacity: 0.27,
 		depthWrite: false,
 	}), []);
-	useEffect(() => { material.color.set(color); }, [color, material]);
-	const driftX = Math.sin(windDirection) * windSpeed * 0.28;
-	const driftZ = Math.cos(windDirection) * windSpeed * 0.28;
+	useEffect(() => {
+		material.color.set(color);
+		material.opacity = 0.2 + intensity * 0.22;
+	}, [color, intensity, material]);
+	const impactGeometry = useMemo(() => {
+		const result = new THREE.BufferGeometry();
+		result.setAttribute('position', new THREE.BufferAttribute(new Float32Array(240 * 12), 3).setUsage(THREE.DynamicDrawUsage));
+		return result;
+	}, []);
+	const impacts = useMemo(() => new Float32Array(240 * 4).fill(-1000), []);
+	const impactCursor = useRef(0);
+	const rainRandom = useRef(mulberry32(0x1234abcd));
+	const driftX = Math.sin(windDirection) * windSpeed * 1.5;
+	const driftZ = Math.cos(windDirection) * windSpeed * 1.5;
 
 	useEffect(() => () => {
 		geometry.dispose();
+		impactGeometry.dispose();
 		material.dispose();
-	}, [geometry, material]);
+	}, [geometry, impactGeometry, material]);
 
-	useFrame(({ camera }, delta) => {
+	useFrame(({ camera, clock }, delta) => {
 		const lines = linesRef.current;
 		if (!lines) return;
 		lines.position.copy(camera.position);
 		const positions = geometry.attributes.position.array as Float32Array;
-		const fallDistance = Math.min(delta, 0.05) * (17 + intensity * 12);
-		const driftScale = Math.min(delta, 0.05);
-		for (let index = 0; index < MAX_RAIN_DROPS; index += 1) {
+		const dt = Math.min(delta, 0.05);
+		const time = clock.elapsedTime;
+		const count = Math.round(MAX_RAIN_DROPS * intensity * intensity);
+		const fallSpeed = 22 + intensity * 15;
+		for (let index = 0; index < count; index += 1) {
 			const offset = index * 6;
-			positions[offset] += driftX * driftScale;
-			positions[offset + 1] -= fallDistance;
-			positions[offset + 2] += driftZ * driftScale;
-			positions[offset + 3] += driftX * driftScale;
-			positions[offset + 4] -= fallDistance;
-			positions[offset + 5] += driftZ * driftScale;
-			if (positions[offset + 4] < -7) {
-				const length = positions[offset + 1] - positions[offset + 4];
-				positions[offset + 1] += RAIN_HEIGHT;
-				positions[offset + 4] = positions[offset + 1] - length;
+			const length = 0.6 + ((index * 0.61803398875) % 1) * 0.7;
+			const worldX = positions[offset] + camera.position.x;
+			const worldZ = positions[offset + 2] + camera.position.z;
+			// Unequal travelling gusts make broad sheets lean and bunch together,
+			// rather than moving every drop sideways at the same speed.
+			const alongWind = worldX * Math.sin(windDirection) + worldZ * Math.cos(windDirection);
+			const gust = 1 + 0.48 * Math.sin(alongWind * 0.19 - time * 1.7)
+				+ 0.22 * Math.sin(worldX * 0.31 + worldZ * 0.23 - time * 2.9);
+			const vx = driftX * gust;
+			const vz = driftZ * gust;
+			positions[offset] += vx * dt;
+			positions[offset + 1] -= fallSpeed * dt;
+			positions[offset + 2] += vz * dt;
+			const ground = terrainHeight(positions[offset] + camera.position.x, positions[offset + 2] + camera.position.z) - camera.position.y;
+			if (positions[offset + 1] <= ground) {
+				if (intensity > 0.7 && index % 4 === 0) {
+					const hit = impactCursor.current * 4;
+					impacts[hit] = positions[offset] + camera.position.x;
+					impacts[hit + 1] = ground + camera.position.y + 0.05;
+					impacts[hit + 2] = positions[offset + 2] + camera.position.z;
+					impacts[hit + 3] = time;
+					impactCursor.current = (impactCursor.current + 1) % 240;
+				}
+				// Fresh landing positions prevent the same rainfall pattern repeating.
+				positions[offset] = (rainRandom.current() - 0.5) * RAIN_WIDTH;
+				positions[offset + 1] = 16 + rainRandom.current() * 12;
+				positions[offset + 2] = -rainRandom.current() * RAIN_DEPTH;
 			}
-			if (positions[offset] > RAIN_WIDTH * 0.5) {
-				positions[offset] -= RAIN_WIDTH;
-				positions[offset + 3] -= RAIN_WIDTH;
-			} else if (positions[offset] < -RAIN_WIDTH * 0.5) {
-				positions[offset] += RAIN_WIDTH;
-				positions[offset + 3] += RAIN_WIDTH;
-			}
-			if (positions[offset + 2] > 0) {
-				positions[offset + 2] -= RAIN_DEPTH;
-				positions[offset + 5] -= RAIN_DEPTH;
-			} else if (positions[offset + 2] < -RAIN_DEPTH) {
-				positions[offset + 2] += RAIN_DEPTH;
-				positions[offset + 5] += RAIN_DEPTH;
-			}
+			if (positions[offset] > RAIN_WIDTH * 0.5) positions[offset] -= RAIN_WIDTH;
+			if (positions[offset] < -RAIN_WIDTH * 0.5) positions[offset] += RAIN_WIDTH;
+			if (positions[offset + 2] > 0) positions[offset + 2] -= RAIN_DEPTH;
+			if (positions[offset + 2] < -RAIN_DEPTH) positions[offset + 2] += RAIN_DEPTH;
+			// Streaks align with their velocity instead of remaining vertical in wind.
+			positions[offset + 3] = positions[offset] + vx / fallSpeed * length;
+			positions[offset + 4] = Math.max(ground, positions[offset + 1] - length);
+			positions[offset + 5] = positions[offset + 2] + vz / fallSpeed * length;
 		}
-		geometry.setDrawRange(0, Math.round(MAX_RAIN_DROPS * intensity) * 2);
+		const splashPositions = impactGeometry.attributes.position.array as Float32Array;
+		let visibleHits = 0;
+		for (let index = 0; index < 240; index++) {
+			const hit = index * 4;
+			const age = time - impacts[hit + 3];
+			if (age < 0 || age > 0.22) continue;
+			const size = 0.06 + age * 0.55;
+			const x = impacts[hit], y = impacts[hit + 1], z = impacts[hit + 2];
+			const offset = visibleHits++ * 12;
+			splashPositions.set([x - size, y, z, x + size, y, z, x, y, z - size, x, y, z + size], offset);
+		}
+		impactGeometry.setDrawRange(0, visibleHits * 4);
+		impactGeometry.attributes.position.needsUpdate = true;
+		geometry.setDrawRange(0, count * 2);
 		geometry.attributes.position.needsUpdate = true;
 	});
 
 	if (intensity <= 0) return null;
-	return <lineSegments ref={linesRef} geometry={geometry} material={material} frustumCulled={false} />;
+	return <>
+		<lineSegments ref={linesRef} geometry={geometry} material={material} frustumCulled={false} />
+		<lineSegments geometry={impactGeometry} material={material} frustumCulled={false} />
+	</>;
 }
 
 function StormLightning({ enabled }: { enabled: boolean }) {

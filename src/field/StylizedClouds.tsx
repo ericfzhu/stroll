@@ -41,6 +41,7 @@ const fragmentShader = `
 	uniform sampler3D uNoise;
 	uniform float uCover;
 	uniform float uBaseVariation;
+	uniform float uTowers;
 	uniform vec4 uShape; // base, depth, horizontal scale, overcast blend
 	uniform vec2 uWindOffset;
 	uniform vec3 uSunDirection;
@@ -56,7 +57,7 @@ const fragmentShader = `
 	}
 
 	float densityAt(vec3 p) {
-		if (p.y < uShape.x - 4.0 * uBaseVariation || p.y > uShape.x + uShape.y + 4.0 * uBaseVariation) return 0.0;
+		if (p.y < uShape.x - 4.0 * uBaseVariation || p.y > uShape.x + uShape.y + 32.0 * uTowers + 4.0 * uBaseVariation) return 0.0;
 		p.xz += uWindOffset;
 		// Broad footprints persist vertically, while the second noise carves lobes.
 		// Both families use the same two texture lookups and deterministic field.
@@ -67,7 +68,7 @@ const fragmentShader = `
 		float baseOffset = (footprint - 0.5) * mix(6.0, 3.5, uShape.w)
 			+ (lobes - 0.5) * 1.2;
 		float h = (p.y - uShape.x - baseOffset * uBaseVariation) / uShape.y;
-		if (h <= 0.0 || h >= 1.0) return 0.0;
+		if (h <= 0.0) return 0.0;
 		float base = smoothstep(0.0, mix(0.12, 0.2, uShape.w), h);
 		// Narrow toward the top: rounded heaps above a shared, flatter base.
 		float crown = smoothstep(0.18, 1.0, h);
@@ -77,14 +78,21 @@ const fragmentShader = `
 		float deck = footprint + (lobes - 0.5) * 0.13 - crown * 0.09;
 		float shape = mix(cumulus, deck, uShape.w);
 		float top = 1.0 - smoothstep(0.75, 1.0, h);
-		return smoothstep(threshold, threshold + 0.1, shape)
-			* base * top * smoothstep(0.0, 0.12, uCover);
+		float layer = smoothstep(threshold, threshold + 0.1, shape) * base * top;
+		// Selected broad footprints grow above the deck, rather than stretching
+		// the whole sky into a thick slab. Reuse the two existing noise samples.
+		float towerH = (p.y - uShape.x - baseOffset * uBaseVariation) / (uShape.y + 32.0 * uTowers);
+		float towerTop = 1.0 - smoothstep(0.72, 1.0, towerH);
+		float towerCrown = smoothstep(0.5, 1.0, towerH) * 0.18;
+		float towerShape = footprint + (lobes - 0.5) * 0.24 - towerCrown;
+		float towers = smoothstep(0.51, 0.65, towerShape) * base * towerTop;
+		return max(layer, towers * uTowers) * smoothstep(0.0, 0.12, uCover);
 	}
 
 	void main() {
 		vec3 ray = normalize(vDirection);
 		if (abs(ray.y) < 0.0001) discard;
-		vec2 bounds = (vec2(uShape.x - 4.0 * uBaseVariation, uShape.x + uShape.y + 4.0 * uBaseVariation) - cameraPosition.y) / ray.y;
+		vec2 bounds = (vec2(uShape.x - 4.0 * uBaseVariation, uShape.x + uShape.y + 32.0 * uTowers + 4.0 * uBaseVariation) - cameraPosition.y) / ray.y;
 		float nearT = max(0.0, min(bounds.x, bounds.y));
 		float farT = min(155.0, max(bounds.x, bounds.y));
 		if (farT <= nearT) discard;
@@ -103,7 +111,7 @@ const fragmentShader = `
 				// Two coarse sunward samples give soft internal shadows.
 				float shadow = densityAt(p + uSunDirection * 3.0) * 0.7
 					+ densityAt(p + uSunDirection * 7.0) * 0.3;
-				float illumination = exp(-shadow * 1.8);
+				float illumination = exp(-shadow * mix(1.8, 2.8, uTowers));
 				vec3 color = mix(uShade, uLight, 0.25 + illumination * 0.65);
 				color += uLight * rim * (1.0 - density);
 				color = mix(color, uHorizon, smoothstep(70.0, 155.0, t) * 0.65);
@@ -134,6 +142,7 @@ export default function StylizedClouds({ cloudCover, shapeOverrides, weatherStat
 			uNoise: { value: densityTexture },
 			uCover: { value: initialShape.cover },
 			uBaseVariation: { value: initialShape.baseVariation },
+			uTowers: { value: initialShape.towers },
 			uShape: { value: new THREE.Vector4(initialShape.base, initialShape.depth, initialShape.scale, initialShape.overcast) },
 			uWindOffset: { value: new THREE.Vector2() },
 			uSunDirection: { value: new THREE.Vector3() },
@@ -170,6 +179,7 @@ export default function StylizedClouds({ cloudCover, shapeOverrides, weatherStat
 		meshRef.current?.position.copy(camera.position);
 		const blend = 1 - Math.exp(-Math.min(delta, 0.1) * 1.5);
 		const next = targetRef.current;
+		material.uniforms.uTowers.value = THREE.MathUtils.lerp(material.uniforms.uTowers.value, next.towers, blend);
 		material.uniforms.uBaseVariation.value = THREE.MathUtils.lerp(material.uniforms.uBaseVariation.value, next.baseVariation, blend);
 		material.uniforms.uCover.value = THREE.MathUtils.lerp(material.uniforms.uCover.value, next.cover, blend);
 		const shape = material.uniforms.uShape.value as THREE.Vector4;

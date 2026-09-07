@@ -21,7 +21,6 @@ const WEATHER_OPTIONS = [
 	{ code: 500, label: 'Light rain', cloudCover: 75 },
 	{ code: 502, label: 'Heavy rain', cloudCover: 95 },
 	{ code: 211, label: 'Thunderstorm', cloudCover: 100 },
-	{ code: 601, label: 'Snow', cloudCover: 90 },
 	{ code: 781, label: 'Severe', cloudCover: 85 },
 ] as const;
 
@@ -79,8 +78,8 @@ export default function FlowerFieldDemo() {
 	const [timeOfDay, setTimeOfDay] = useState(14);
 	const [settingsCopied, setSettingsCopied] = useState(false);
 	const mockWeather = useMemo(
-		() => createMockWeather(weatherCode, cloudCover, visibility),
-		[cloudCover, visibility, weatherCode],
+		() => ({ ...createMockWeather(weatherCode, cloudCover, visibility), windSpeed, windDirection }),
+		[cloudCover, visibility, weatherCode, windSpeed, windDirection],
 	);
 	const mockWeatherNow = MOCK_DAY_START + timeOfDay * 60 * 60;
 	const handleReady = useCallback(() => setReady(true), []);
@@ -197,6 +196,7 @@ export default function FlowerFieldDemo() {
 						<legend>Cloud shape</legend>
 						{([
 							['overcast', 'Connected', 0, 1, 0.05],
+							['towers', 'Storm towers', 0, 1, 0.05],
 							['base', 'Base height', 10, 40, 0.5],
 							['depth', 'Thickness', 5, 30, 0.5],
 							['scale', 'Shape scale', 0.025, 0.15, 0.005],

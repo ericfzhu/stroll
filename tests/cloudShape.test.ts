@@ -17,3 +17,9 @@ it('uses a layered rainy sky without inventing extra cloud cover', () => {
 	expect(rain.cover).toBe(0.4);
 	expect(cloudShape(0, 'light-rain').cover).toBe(0);
 });
+
+it('adds towers for thunderstorms without treating ordinary rain as convection', () => {
+ expect(cloudShape(100, 'thunderstorm').towers).toBe(1);
+ expect(cloudShape(100, 'heavy-rain').towers).toBe(0);
+ expect(cloudShape(100, 'heavy-clouds').towers).toBe(0);
+});

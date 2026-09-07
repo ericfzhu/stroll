@@ -9,6 +9,7 @@ export function cloudShape(cloudCover: number, state: FlowerFieldWeatherState) {
 	return {
 		cover,
 		baseVariation: 1,
+		towers: state === 'thunderstorm' ? 1 : 0,
 		overcast,
 		base: MathUtils.lerp(18, 16, overcast),
 		depth: MathUtils.lerp(19, 11, overcast),
