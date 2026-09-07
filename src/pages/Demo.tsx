@@ -1,4 +1,5 @@
-import { DEFAULT_SKY_COLOR } from '../field/weatherAtmosphere';
+import { cloudShape, type CloudShapeOverrides } from '../field/cloudShape';
+import { DEFAULT_SKY_COLOR, weatherStateFromCode } from '../field/weatherAtmosphere';
 import { useCallback, useMemo, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -72,6 +73,8 @@ export default function FlowerFieldDemo() {
 	const [noiseScale, setNoiseScale] = useState(0.05);
 	const [weatherCode, setWeatherCode] = useState(800);
 	const [cloudCover, setCloudCover] = useState(0);
+	const [cloudShapeOverrides, setCloudShapeOverrides] = useState<CloudShapeOverrides>({});
+	const shape = { ...cloudShape(cloudCover, weatherStateFromCode(weatherCode)), ...cloudShapeOverrides };
 	const [visibility, setVisibility] = useState(10);
 	const [timeOfDay, setTimeOfDay] = useState(14);
 	const [settingsCopied, setSettingsCopied] = useState(false);
@@ -105,12 +108,13 @@ export default function FlowerFieldDemo() {
 			noiseScale,
 			weatherCode,
 			cloudCover,
+			cloudShapeOverrides,
 			visibility,
 			time: formatMockHour(timeOfDay),
 		}, null, 2));
 		setSettingsCopied(true);
 		window.setTimeout(() => setSettingsCopied(false), 1600);
-	}, [cameraAngle, cameraHeight, cameraSpeed, cloudCover, ditherMode, ditherPixelSize, ditherStrength, noiseScale, noiseStrength, showChunkBoundaries, skyColor, sunStrength, timeOfDay, visibility, weatherCode, windDirection, windScale, windSpeed, windStrength]);
+	}, [cameraAngle, cameraHeight, cameraSpeed, cloudCover, cloudShapeOverrides, ditherMode, ditherPixelSize, ditherStrength, noiseScale, noiseStrength, showChunkBoundaries, skyColor, sunStrength, timeOfDay, visibility, weatherCode, windDirection, windScale, windSpeed, windStrength]);
 
 	return (
 		<main className="flower-field-page">
@@ -135,6 +139,7 @@ export default function FlowerFieldDemo() {
 					weather={mockWeather}
 					weatherNow={mockWeatherNow}
 					cloudRendering="stylized"
+					cloudShapeOverrides={cloudShapeOverrides}
 					onReady={handleReady}
 				/>
 			</div>
@@ -142,7 +147,7 @@ export default function FlowerFieldDemo() {
 				<header className="flower-field-header">
 					<Link to="/flower-studio" className="flower-field-studio">Flower studio</Link>
 				</header>
-				<aside className="flower-field-camera-controls" aria-label="Camera controls">
+				<aside className="flower-field-camera-controls" aria-label="Scene controls">
 					<label>
 						<span>Height</span>
 						<input
@@ -188,6 +193,24 @@ export default function FlowerFieldDemo() {
 						<input type="range" min="0" max="100" step="1" value={cloudCover} onChange={(event) => setCloudCover(Number(event.target.value))} />
 						<output>{cloudCover}%</output>
 					</label>
+					<fieldset>
+						<legend>Cloud shape</legend>
+						{([
+							['overcast', 'Connected', 0, 1, 0.05],
+							['base', 'Base height', 10, 40, 0.5],
+							['depth', 'Thickness', 5, 30, 0.5],
+							['scale', 'Shape scale', 0.025, 0.15, 0.005],
+							['baseVariation', 'Uneven base', 0, 2, 0.1],
+						] as const).map(([key, label, min, max, step]) => (
+							<label key={key}>
+								<span>{label}</span>
+								<input type="range" min={min} max={max} step={step} value={shape[key]}
+									onChange={(event) => setCloudShapeOverrides((current) => ({ ...current, [key]: Number(event.target.value) }))} />
+								<output>{shape[key].toFixed(key === 'scale' ? 3 : 1)}</output>
+							</label>
+						))}
+						<button type="button" onClick={() => setCloudShapeOverrides({})}>Reset cloud shape to weather</button>
+					</fieldset>
 					<label>
 						<span>Visibility</span>
 						<input type="range" min="1" max="10" step="0.5" value={visibility} onChange={(event) => setVisibility(Number(event.target.value))} />

@@ -155,8 +155,10 @@
 
 .flower-field-diagnostics {
 	position: absolute;
-	right: 22px;
-	bottom: 18px;
+	right: 326px;
+	top: 18px;
+	max-height: calc(100svh - 36px);
+	overflow-y: auto;
 	z-index: 3;
 	width: 230px;
 	padding: 12px 14px;
@@ -170,7 +172,7 @@
 	line-height: 1.35;
 	text-transform: uppercase;
 	backdrop-filter: blur(12px);
-	pointer-events: none;
+	pointer-events: auto;
 }
 
 .flower-field-diagnostics header {
@@ -250,23 +252,26 @@
 	text-underline-offset: 4px;
 }
 
-@media (max-width: 700px) {
-	.flower-field-camera-controls {
-		top: 12px;
-		right: 12px;
-		width: min(290px, calc(100vw - 132px));
-	}
-
-	.flower-field-diagnostics {
-		right: 12px;
-		bottom: 12px;
-		width: 210px;
-	}
-}
-
-@media (max-width: 360px) {
+/* Keep both columns usable on narrow screens without overlapping panels. */
+@media (max-width: 600px) {
 	.flower-field-camera-controls {
 		top: 64px;
-		width: calc(100vw - 24px);
+		right: 12px;
+		width: calc((100vw - 36px) * 0.56);
+		max-height: calc(100svh - 76px);
+		padding: 10px;
 	}
+	.flower-field-camera-controls label {
+		grid-template-columns: 1fr 42px;
+		gap: 5px;
+	}
+	.flower-field-camera-controls label > span { grid-column: 1 / -1; }
+	.flower-field-diagnostics {
+		top: 64px;
+		right: calc(24px + (100vw - 36px) * 0.56);
+		width: calc((100vw - 36px) * 0.44);
+		max-height: calc(100svh - 76px);
+		padding: 10px;
+	}
+	.flower-field-diagnostics dl div { flex-wrap: wrap; gap: 2px 8px; }
 }

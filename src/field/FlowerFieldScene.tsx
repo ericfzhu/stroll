@@ -1,3 +1,4 @@
+import type { CloudShapeOverrides } from './cloudShape';
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -49,6 +50,7 @@ interface FlowerFieldSceneProps {
 	weather?: WeatherData | null;
 	weatherNow?: number;
 	cloudRendering: CloudRendering;
+	cloudShapeOverrides?: CloudShapeOverrides;
 	onReady: () => void;
 }
 
@@ -516,7 +518,7 @@ interface FlowerFieldWorldProps extends Omit<FlowerFieldSceneProps, 'reducedMoti
 	diagnosticsRef: RefObject<FlowerFieldDiagnosticValues>;
 }
 
-function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, onReady, diagnosticsRef }: FlowerFieldWorldProps) {
+function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, cloudShapeOverrides, onReady, diagnosticsRef }: FlowerFieldWorldProps) {
 	const [liveNow, setLiveNow] = useState(() => Date.now() / 1000);
 	useEffect(() => {
 		if (weatherNow !== undefined) return;
@@ -831,6 +833,8 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 			)}
 			{cloudRendering === 'stylized' && (
 				<StylizedClouds
+					shapeOverrides={cloudShapeOverrides}
+					weatherState={atmosphere.state}
 					cloudCover={weather?.cloudCover ?? 0}
 					sunDirection={atmosphere.sunDirection}
 					lightColor={atmosphere.cloudLightColor}
@@ -890,7 +894,7 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 	);
 }
 
-export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true, cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, ditherStrength, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, onReady }: FlowerFieldSceneProps) {
+export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true, cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, ditherStrength, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, cloudShapeOverrides, onReady }: FlowerFieldSceneProps) {
 	const diagnosticsRef = useRef(createFlowerFieldDiagnosticValues());
 	const diagnosticHistoryRef = useRef(createFlowerFieldDiagnosticHistory());
 	const handleCreated = useCallback(({ gl }: { gl: THREE.WebGLRenderer }) => {
@@ -928,6 +932,7 @@ export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true
 					weather={weather}
 					weatherNow={weatherNow}
 					cloudRendering={cloudRendering}
+					cloudShapeOverrides={cloudShapeOverrides}
 						onReady={onReady}
 						diagnosticsRef={diagnosticsRef}
 					/>
