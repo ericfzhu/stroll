@@ -5,6 +5,7 @@ import { useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import FlowerFieldLoading from '../field/FlowerFieldLoading';
 import FlowerFieldScene from '../field/FlowerFieldScene';
+import useMeadowAudio from '../field/useMeadowAudio';
 import type { WeatherData } from '../weather/weatherTypes';
 import './Demo.css';
 
@@ -53,6 +54,7 @@ function formatMockHour(hour: number) {
 }
 
 export default function FlowerFieldDemo() {
+	const audio = useMeadowAudio();
 	const reducedMotion = Boolean(useReducedMotion());
 	const [ready, setReady] = useState(false);
 	const [cameraHeight, setCameraHeight] = useState(7);
@@ -140,6 +142,7 @@ export default function FlowerFieldDemo() {
 					cloudRendering="stylized"
 					cloudShapeOverrides={cloudShapeOverrides}
 					onReady={handleReady}
+					onAudioFrame={audio.updateAudio}
 				/>
 			</div>
 			<div className="flower-field-interface">
@@ -147,6 +150,19 @@ export default function FlowerFieldDemo() {
 					<Link to="/flower-studio" className="flower-field-studio">Flower studio</Link>
 				</header>
 				<aside className="flower-field-camera-controls" aria-label="Scene controls">
+					<fieldset>
+						<legend>Sound</legend>
+						<button type="button" aria-pressed={audio.enabled} onClick={() => void audio.toggle()}>
+							Sound {audio.enabled ? 'on' : 'off'}
+						</button>
+						<label>
+							<span>Volume</span>
+							<input type="range" min="0" max="100" value={audio.volume} aria-label="Sound volume" aria-valuetext={`${audio.volume}%`} onChange={(event) => audio.changeVolume(Number(event.target.value))} />
+							<output>{audio.volume}%</output>
+						</label>
+
+						{audio.error && <span role="status">{audio.error}</span>}
+					</fieldset>
 					<label>
 						<span>Height</span>
 						<input

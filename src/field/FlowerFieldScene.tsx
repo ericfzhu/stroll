@@ -1,3 +1,4 @@
+import type { MeadowAudioFrame } from './meadowAudio';
 import type { CloudShapeOverrides } from './cloudShape';
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
@@ -52,6 +53,7 @@ interface FlowerFieldSceneProps {
 	cloudRendering: CloudRendering;
 	cloudShapeOverrides?: CloudShapeOverrides;
 	onReady: () => void;
+	onAudioFrame?: (frame: MeadowAudioFrame) => void;
 }
 
 const CAMERA_VERTICAL_FOV = 48;
@@ -559,7 +561,7 @@ interface FlowerFieldWorldProps extends Omit<FlowerFieldSceneProps, 'reducedMoti
 	diagnosticsRef: RefObject<FlowerFieldDiagnosticValues>;
 }
 
-function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, cloudShapeOverrides, onReady, diagnosticsRef }: FlowerFieldWorldProps) {
+function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, cloudShapeOverrides, onAudioFrame, onReady, diagnosticsRef }: FlowerFieldWorldProps) {
 	const [liveNow, setLiveNow] = useState(() => Date.now() / 1000);
 	useEffect(() => {
 		if (weatherNow !== undefined) return;
@@ -861,6 +863,10 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 		}
 	});
 
+	useFrame(() => {
+		onAudioFrame?.({ rainIntensity: atmosphere.rainIntensity, windStrength, cursorStrength: cursorWindRef.current.strength });
+	});
+
 	return (
 		<>
 			<color args={[atmosphere.zenithColor]} attach="background" />
@@ -935,7 +941,7 @@ function FlowerFieldWorld({ cameraHeight, cameraAngle, showChunkBoundaries, skyC
 	);
 }
 
-export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true, cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, ditherStrength, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, cloudShapeOverrides, onReady }: FlowerFieldSceneProps) {
+export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true, cameraHeight, cameraAngle, showChunkBoundaries, skyColor, sunStrength, cameraSpeed, windSpeed, windStrength, windDirection, windScale, ditherMode, ditherPixelSize, ditherStrength, noiseStrength, noiseScale, weather, weatherNow, cloudRendering, cloudShapeOverrides, onAudioFrame, onReady }: FlowerFieldSceneProps) {
 	const diagnosticsRef = useRef(createFlowerFieldDiagnosticValues());
 	const diagnosticHistoryRef = useRef(createFlowerFieldDiagnosticHistory());
 	const handleCreated = useCallback(({ gl }: { gl: THREE.WebGLRenderer }) => {
@@ -975,6 +981,7 @@ export default function FlowerFieldScene({ reducedMotion, showDiagnostics = true
 					cloudRendering={cloudRendering}
 					cloudShapeOverrides={cloudShapeOverrides}
 						onReady={onReady}
+						onAudioFrame={onAudioFrame}
 						diagnosticsRef={diagnosticsRef}
 					/>
 					{(showDiagnostics || needsPostprocessing(ditherStrength, noiseStrength)) && (

@@ -1,3 +1,4 @@
+import useMeadowAudio from '../field/useMeadowAudio';
 import { DEFAULT_SKY_COLOR } from '../field/weatherAtmosphere';
 import { useCallback, useEffect, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
@@ -7,6 +8,7 @@ import useWeather from '../weather/useWeather';
 import { startFaviconAnimation } from '../favicon';
 
 export default function Stroll() {
+	const audio = useMeadowAudio();
 	const reducedMotion = Boolean(useReducedMotion());
 	const { weather, loading: weatherLoading } = useWeather();
 	const [ready, setReady] = useState(false);
@@ -54,13 +56,22 @@ export default function Stroll() {
 					weather={weather}
 					cloudRendering="stylized"
 					onReady={handleReady}
+					onAudioFrame={audio.updateAudio}
 				/>
 			</div>
 			{revealed && (
-				<p className="flower-field-location">
-					Sydney, Australia
-					<span className="flower-field-coordinates">33.8688° S · 151.2093° E</span>
-				</p>
+				<div className="flower-field-caption">
+					<div className="flower-field-audio" role="group" aria-label="Meadow sound">
+						<button type="button" aria-pressed={audio.enabled} onClick={() => void audio.toggle()}>
+							Sound {audio.enabled ? 'on' : 'off'}
+						</button>
+						{audio.error && <span role="status">{audio.error}</span>}
+					</div>
+					<p className="flower-field-location">
+						Sydney, Australia
+						<span className="flower-field-coordinates">33.8688° S · 151.2093° E</span>
+					</p>
+				</div>
 			)}
 			{!revealed && <FlowerFieldLoading />}
 		</main>

@@ -26,18 +26,27 @@
 	pointer-events: none;
 }
 
-.flower-field-location {
+.flower-field-caption {
 	position: fixed;
 	bottom: max(clamp(24px, 4vw, 40px), env(safe-area-inset-bottom));
 	left: max(clamp(24px, 4vw, 40px), env(safe-area-inset-left));
 	z-index: 2;
+	display: grid;
+	grid-template-columns: auto;
+}
+
+.flower-field-location {
 	margin: 0;
+	pointer-events: none;
+}
+
+.flower-field-location,
+.flower-field-audio {
 	color: #f3f1e7;
 	font-size: 12px;
 	line-height: 1.6;
 	letter-spacing: 0.035em;
 	text-shadow: 0 1px 3px rgba(12, 22, 15, 0.9), 0 2px 12px rgba(12, 22, 15, 0.55);
-	pointer-events: none;
 }
 
 .flower-field-location::before {
@@ -56,4 +65,38 @@
 	color: #dddcd0;
 	font-size: 9px;
 	letter-spacing: 0.1em;
+}
+
+.flower-field-audio {
+	position: relative;
+}
+
+.flower-field-audio button {
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	letter-spacing: inherit;
+	text-shadow: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.flower-field-audio :focus-visible {
+	outline: 2px solid #f3f1e7;
+	outline-offset: 4px;
+}
+
+.flower-field-audio [role='status'] {
+	position: absolute;
+	bottom: calc(100% + 12px);
+	left: 0;
+	width: 240px;
+	padding: 10px;
+	background: #182016;
+	font-size: 11px;
 }

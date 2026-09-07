@@ -13,6 +13,7 @@ import {
 	ROSE_STEM_DURATION,
 	type DaisyVariantId,
 } from './flowerGeometry';
+import { createFlowerDepthMaterial } from './flowerDepthMaterial';
 import flowerVertexShader from './shaders/flowers.vertex.glsl?raw';
 import flowerFragmentShader from './shaders/flowers.fragment.glsl?raw';
 import type { CursorWindState } from './cursorWind';
@@ -286,11 +287,12 @@ class FlowerTileCache {
 	}
 }
 
-function FlowerInstances({ group, geometry, distantGeometry, material, population, matrixTimingRef, diagnosticsRef, batchCountsRef }: {
+function FlowerInstances({ group, geometry, distantGeometry, material, depthMaterial, population, matrixTimingRef, diagnosticsRef, batchCountsRef }: {
 	group: FlowerGroup;
 	geometry: THREE.BufferGeometry;
 	distantGeometry: THREE.BufferGeometry;
 	material: THREE.ShaderMaterial;
+	depthMaterial: THREE.MeshDepthMaterial;
 	population: FlowerGroup[];
 	matrixTimingRef: RefObject<MatrixBuildTiming>;
 	diagnosticsRef: RefObject<FlowerFieldDiagnosticValues>;
@@ -355,17 +357,18 @@ function FlowerInstances({ group, geometry, distantGeometry, material, populatio
 
 	return (
 		<>
-			<instancedMesh ref={nearRef} args={[geometry, material, group.matrices.length]} frustumCulled={false} castShadow receiveShadow dispose={null} />
-			<instancedMesh ref={farRef} args={[distantGeometry, material, group.matrices.length]} frustumCulled={false} castShadow receiveShadow dispose={null} />
+			<instancedMesh ref={nearRef} args={[geometry, material, group.matrices.length]} frustumCulled={false} customDepthMaterial={depthMaterial} castShadow receiveShadow dispose={null} />
+			<instancedMesh ref={farRef} args={[distantGeometry, material, group.matrices.length]} frustumCulled={false} customDepthMaterial={depthMaterial} castShadow receiveShadow dispose={null} />
 		</>
 	);
 }
 
-function PlantedRoseInstances({ roses, variant, geometry, material }: {
+function PlantedRoseInstances({ roses, variant, geometry, material, depthMaterial }: {
 	roses: PlantedRose[];
 	variant: PlantableRoseVariant;
 	geometry: THREE.BufferGeometry;
 	material: THREE.ShaderMaterial;
+	depthMaterial: THREE.MeshDepthMaterial;
 }) {
 	const instanceRef = useRef<THREE.InstancedMesh>(null);
 	const instances = useMemo(() => {
@@ -398,6 +401,7 @@ function PlantedRoseInstances({ roses, variant, geometry, material }: {
 			ref={instanceRef}
 			args={[geometry, material, instances.length]}
 			frustumCulled={false}
+			customDepthMaterial={depthMaterial}
 			castShadow
 			receiveShadow
 			dispose={null}
@@ -470,6 +474,8 @@ export default function FlowerPopulation({
 		lights: true,
 	}));
 
+	const depthMaterial = useMemo(() => createFlowerDepthMaterial(material), [material]);
+
 	useLayoutEffect(() => {
 		material.uniforms.uNoiseTexture.value = noiseTexture;
 		material.uniforms.uSunDirection.value.copy(sunDirection);
@@ -534,6 +540,7 @@ export default function FlowerPopulation({
 		geometries.forEach((geometry) => geometry.dispose());
 	}, [geometries]);
 	useEffect(() => () => material.dispose(), [material]);
+	useEffect(() => () => depthMaterial.dispose(), [depthMaterial]);
 
 	return (
 		<>
@@ -549,6 +556,7 @@ export default function FlowerPopulation({
 						batchCountsRef={batchCountsRef}
 						geometry={geometry}
 						material={material}
+						depthMaterial={depthMaterial}
 						population={population.groups}
 						matrixTimingRef={matrixTimingRef}
 						diagnosticsRef={diagnosticsRef}
@@ -565,6 +573,7 @@ export default function FlowerPopulation({
 						variant={variant}
 						geometry={geometry}
 						material={material}
+						depthMaterial={depthMaterial}
 					/>
 				);
 			})}

@@ -1,5 +1,7 @@
 #include <common>
+#ifndef FLOWER_DEPTH_PASS
 #include <shadowmap_pars_vertex>
+#endif
 
 uniform float uTime;
 uniform sampler2D uNoiseTexture;
@@ -25,9 +27,13 @@ attribute float aHeadRigidity;
 attribute vec3 aBudPosition;
 attribute float aBloomStart;
 
+#ifdef FLOWER_DEPTH_PASS
+varying vec2 vHighPrecisionZW;
+#else
 varying vec3 vColor;
 varying vec3 vNormal;
 varying vec3 vWorldPosition;
+#endif
 
 mat3 rotateAxis(vec3 axis, float angle) {
   float s = sin(angle);
@@ -98,13 +104,17 @@ void main() {
   vec4 worldPosition = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
 	float curvatureDistance = max(0.0, length(worldPosition.xz - uCircleCenter.xz) - uCurvatureStart);
 	worldPosition.y -= curvatureDistance * curvatureDistance / (2.0 * uCurvatureRadius);
+  gl_Position = projectionMatrix * viewMatrix * worldPosition;
+#ifdef FLOWER_DEPTH_PASS
+  vHighPrecisionZW = gl_Position.zw;
+#else
   mat3 vertexWindRotation = aHeadRigidity > 0.5 ? tipWindRotation : localWindRotation;
   mat3 worldRotation = instanceWorldTransform * vertexWindRotation;
 
   vColor = color;
   vNormal = normalize(worldRotation * normal);
   vWorldPosition = worldPosition.xyz;
-  gl_Position = projectionMatrix * viewMatrix * worldPosition;
 	vec3 transformedNormal = normalize((viewMatrix * vec4(vNormal, 0.0)).xyz);
 	#include <shadowmap_vertex>
+#endif
 }
